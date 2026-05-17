@@ -32,11 +32,13 @@ export default function ProcurementSettingsPage() {
   const fetchExchangeRate = async () => {
     setRateLoading(true)
     try {
-      const res = await fetch("https://api.frankfurter.dev/v1/latest?base=USD&symbols=JPY")
+      const res = await fetch("https://open.er-api.com/v6/latest/USD")
       const data = await res.json()
-      const rate = Math.round(data.rates.JPY * 100) / 100
-      setExchangeRate(rate)
-      setExchangeRateInput(String(rate))
+      if (data && data.rates && data.rates.JPY) {
+        const rate = Math.round(data.rates.JPY * 100) / 100
+        setExchangeRate(rate)
+        setExchangeRateInput(String(rate))
+      }
     } catch (e) {
       console.error("為替レート取得失敗:", e)
     } finally {
@@ -290,7 +292,7 @@ export default function ProcurementSettingsPage() {
                     {rateLoading ? "取得中..." : "更新"}
                   </button>
                 </div>
-                <Button onClick={() => setIsFormOpen(true)} className="w-full sm:w-auto">
+                <Button onClick={() => setIsFormOpen(true)} className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90">
                   <Plus className="mr-2 h-4 w-4" />
                   新規追加
                 </Button>
