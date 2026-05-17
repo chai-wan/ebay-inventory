@@ -21,11 +21,28 @@ export default function ProcurementSettingsPage() {
   const [exchangeRate, setExchangeRate] = useState<number>(150)
   const [exchangeRateInput, setExchangeRateInput] = useState<string>("150")
   const [loading, setLoading] = useState(true)
+  const [rateLoading, setRateLoading] = useState(true)
 
   useEffect(() => {
     loadSiteMasters()
     loadSettings()
+    fetchExchangeRate()
   }, [])
+
+  const fetchExchangeRate = async () => {
+    setRateLoading(true)
+    try {
+      const res = await fetch("https://api.frankfurter.app/latest?from=USD&to=JPY")
+      const data = await res.json()
+      const rate = Math.round(data.rates.JPY * 100) / 100
+      setExchangeRate(rate)
+      setExchangeRateInput(String(rate))
+    } catch (e) {
+      console.error("為替レート取得失敗:", e)
+    } finally {
+      setRateLoading(false)
+    }
+  }
 
   const loadSiteMasters = async () => {
     const { data, error } = await supabase
@@ -265,6 +282,13 @@ export default function ProcurementSettingsPage() {
                     />
                     <span className="text-sm text-muted-foreground">/$</span>
                   </div>
+                  <button
+                    onClick={fetchExchangeRate}
+                    disabled={rateLoading}
+                    className="text-xs text-blue-600 hover:underline disabled:text-muted-foreground whitespace-nowrap"
+                  >
+                    {rateLoading ? "取得中..." : "更新"}
+                  </button>
                 </div>
                 <Button onClick={() => setIsFormOpen(true)} className="w-full sm:w-auto">
                   <Plus className="mr-2 h-4 w-4" />
