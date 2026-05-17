@@ -32,7 +32,7 @@ export default function ProcurementSettingsPage() {
   const fetchExchangeRate = async () => {
     setRateLoading(true)
     try {
-      const res = await fetch("https://api.frankfurter.app/latest?from=USD&to=JPY")
+      const res = await fetch("https://api.frankfurter.dev/v1/latest?base=USD&symbols=JPY")
       const data = await res.json()
       const rate = Math.round(data.rates.JPY * 100) / 100
       setExchangeRate(rate)
