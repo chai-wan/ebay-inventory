@@ -259,19 +259,19 @@ export default function ProcurementSettingsPage() {
 
         {activeTab === "procurement" && (
           <>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <Package className="h-5 w-5" />
+            <div className="flex flex-col gap-3 mb-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                    <Package className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h1 className="text-xl sm:text-2xl font-bold tracking-tight">仕入れ設定</h1>
+                    <p className="text-sm text-muted-foreground">商品ページの監視設定を管理</p>
+                  </div>
                 </div>
-                <div>
-                  <h1 className="text-xl sm:text-2xl font-bold tracking-tight">仕入れ設定</h1>
-                  <p className="text-sm text-muted-foreground">商品ページの監視設定を管理</p>
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
                 <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2">
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">為替レート</span>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">為替</span>
                   <div className="flex items-center gap-1">
                     <span className="text-sm text-muted-foreground">¥</span>
                     <Input
@@ -280,7 +280,7 @@ export default function ProcurementSettingsPage() {
                       step="0.01"
                       value={exchangeRateInput}
                       onChange={handleExchangeRateChange}
-                      className="w-20 h-7 text-sm border-0 p-0 focus-visible:ring-0 font-medium"
+                      className="w-16 h-7 text-sm border-0 p-0 focus-visible:ring-0 font-medium"
                     />
                     <span className="text-sm text-muted-foreground">/$</span>
                   </div>
@@ -289,14 +289,14 @@ export default function ProcurementSettingsPage() {
                     disabled={rateLoading}
                     className="text-xs text-blue-600 hover:underline disabled:text-muted-foreground whitespace-nowrap"
                   >
-                    {rateLoading ? "取得中..." : "更新"}
+                    {rateLoading ? "..." : "更新"}
                   </button>
                 </div>
-                <Button onClick={() => setIsFormOpen(true)} className="w-full sm:w-auto" style={{backgroundColor:"#000", color:"#fff"}}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  新規追加
-                </Button>
               </div>
+              <Button onClick={() => setIsFormOpen(true)} className="w-full" style={{backgroundColor:"#000", color:"#fff"}}>
+                <Plus className="mr-2 h-4 w-4" />
+                新規追加
+              </Button>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4 mb-6">
