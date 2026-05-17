@@ -20,7 +20,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import type { SiteMaster } from "./site-master"
 
+// ProcurementSetting から inStockKeywords / outOfStockKeywords を削除
 export interface ProcurementSetting {
   id: string
   siteName: string
@@ -28,8 +30,6 @@ export interface ProcurementSetting {
   ebayUrl: string
   ebayReferenceUrl: string
   ebayProductName: string
-  inStockKeywords: string
-  outOfStockKeywords: string
   monitoringInterval: string
   memo: string
   status: "monitoring" | "stopped" | "error"
@@ -50,18 +50,8 @@ interface ProcurementSettingsFormProps {
   onOpenChange: (open: boolean) => void
   onSubmit: (setting: Omit<ProcurementSetting, "id" | "createdAt" | "status">) => void
   editingSetting?: ProcurementSetting | null
+  siteMasters: SiteMaster[]  // ← サイトマスタを外から受け取る
 }
-
-const SITE_OPTIONS = [
-  { value: "yahoo-auction", label: "ヤフオク" },
-  { value: "mercari", label: "メルカリ" },
-  { value: "rakuma", label: "ラクマ" },
-  { value: "amazon", label: "Amazon" },
-  { value: "yahoo-shopping", label: "Yahooショッピング" },
-  { value: "rakuten", label: "楽天" },
-  { value: "surugaya", label: "駿河屋" },
-  { value: "other", label: "その他" },
-]
 
 const INTERVAL_OPTIONS = [
   { value: "15", label: "15分" },
@@ -78,14 +68,13 @@ export function ProcurementSettingsForm({
   onOpenChange,
   onSubmit,
   editingSetting,
+  siteMasters,
 }: ProcurementSettingsFormProps) {
   const [siteName, setSiteName] = useState("")
   const [productUrl, setProductUrl] = useState("")
   const [ebayUrl, setEbayUrl] = useState("")
   const [ebayReferenceUrl, setEbayReferenceUrl] = useState("")
   const [ebayProductName, setEbayProductName] = useState("")
-  const [inStockKeywords, setInStockKeywords] = useState("")
-  const [outOfStockKeywords, setOutOfStockKeywords] = useState("")
   const [monitoringInterval, setMonitoringInterval] = useState("30")
   const [memo, setMemo] = useState("")
   // 仕入金額
@@ -103,6 +92,9 @@ export function ProcurementSettingsForm({
     purchasePrice * (1 - discountPercent / 100) - discountPoints
   )
 
+  // 選択中サイトのキーワードをプレビュー表示
+  const selectedSite = siteMasters.find((s) => s.siteName === siteName)
+
   useEffect(() => {
     if (editingSetting) {
       setSiteName(editingSetting.siteName)
@@ -110,8 +102,6 @@ export function ProcurementSettingsForm({
       setEbayUrl(editingSetting.ebayUrl)
       setEbayReferenceUrl(editingSetting.ebayReferenceUrl)
       setEbayProductName(editingSetting.ebayProductName)
-      setInStockKeywords(editingSetting.inStockKeywords)
-      setOutOfStockKeywords(editingSetting.outOfStockKeywords)
       setMonitoringInterval(editingSetting.monitoringInterval)
       setMemo(editingSetting.memo)
       setPurchasePrice(editingSetting.purchasePrice)
@@ -134,8 +124,6 @@ export function ProcurementSettingsForm({
       ebayUrl,
       ebayReferenceUrl,
       ebayProductName,
-      inStockKeywords,
-      outOfStockKeywords,
       monitoringInterval,
       memo,
       purchasePrice,
@@ -155,8 +143,6 @@ export function ProcurementSettingsForm({
     setEbayUrl("")
     setEbayReferenceUrl("")
     setEbayProductName("")
-    setInStockKeywords("")
-    setOutOfStockKeywords("")
     setMonitoringInterval("30")
     setMemo("")
     setPurchasePrice(0)
@@ -180,10 +166,11 @@ export function ProcurementSettingsForm({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
+
           {/* 基本情報 */}
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-muted-foreground border-b pb-2">基本情報</h3>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="siteName">仕入元サイト</Label>
@@ -192,9 +179,9 @@ export function ProcurementSettingsForm({
                     <SelectValue placeholder="サイトを選択" />
                   </SelectTrigger>
                   <SelectContent>
-                    {SITE_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
+                    {siteMasters.map((site) => (
+                      <SelectItem key={site.siteName} value={site.siteName}>
+                        {site.displayName}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -218,6 +205,32 @@ export function ProcurementSettingsForm({
               </div>
             </div>
 
+            {/* 選択サイトのキーワードプレビュー */}
+            {selectedSite && (
+              <div className="rounded-md bg-muted/50 border px-3 py-2 text-xs space-y-1">
+                <div className="font-medium text-muted-foreground">
+                  {selectedSite.displayName} の在庫監視キーワード（サイトマスタより）
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {selectedSite.inStockKeywords && (
+                    <span>
+                      <span className="text-muted-foreground">在庫あり：</span>
+                      <span className="text-emerald-700">{selectedSite.inStockKeywords}</span>
+                    </span>
+                  )}
+                  {selectedSite.outOfStockKeywords && (
+                    <span>
+                      <span className="text-muted-foreground ml-2">在庫なし：</span>
+                      <span className="text-red-700">{selectedSite.outOfStockKeywords}</span>
+                    </span>
+                  )}
+                  {!selectedSite.inStockKeywords && !selectedSite.outOfStockKeywords && (
+                    <span className="text-muted-foreground">キーワード未設定（サイトマスタで設定してください）</span>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="productUrl">仕入URL</Label>
               <Input
@@ -239,9 +252,7 @@ export function ProcurementSettingsForm({
                 value={ebayProductName}
                 onChange={(e) => setEbayProductName(e.target.value)}
               />
-              <p className="text-xs text-muted-foreground">
-                eBayに登録した商品名を入力
-              </p>
+              <p className="text-xs text-muted-foreground">eBayに登録した商品名を入力</p>
             </div>
 
             <div className="space-y-2">
@@ -253,9 +264,7 @@ export function ProcurementSettingsForm({
                 value={ebayUrl}
                 onChange={(e) => setEbayUrl(e.target.value)}
               />
-              <p className="text-xs text-muted-foreground">
-                eBay出品ページのURLを入力（任意）
-              </p>
+              <p className="text-xs text-muted-foreground">eBay出品ページのURLを入力（任意）</p>
             </div>
 
             <div className="space-y-2">
@@ -267,16 +276,14 @@ export function ProcurementSettingsForm({
                 value={ebayReferenceUrl}
                 onChange={(e) => setEbayReferenceUrl(e.target.value)}
               />
-              <p className="text-xs text-muted-foreground">
-                参考にしたeBay商品ページのURLを入力（任意）
-              </p>
+              <p className="text-xs text-muted-foreground">参考にしたeBay商品ページのURLを入力（任意）</p>
             </div>
           </div>
 
           {/* 仕入金額 */}
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-muted-foreground border-b pb-2">仕入金額</h3>
-            
+
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="purchasePrice" className="text-xs">仕入価格</Label>
@@ -327,7 +334,7 @@ export function ProcurementSettingsForm({
 
               <div className="space-y-2">
                 <Label className="text-xs">合計</Label>
-                <div className="h-9 px-3 flex items-center rounded-md border bg-muted/50 font-medium">
+                <div className="h-9 px-3 flex items-center rounded-md border bg-muted/50 font-medium text-sm">
                   ¥{totalPurchasePrice.toLocaleString()}
                 </div>
               </div>
@@ -337,7 +344,7 @@ export function ProcurementSettingsForm({
           {/* 販売価格 */}
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-muted-foreground border-b pb-2">販売価格</h3>
-            
+
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="sellingPriceUsd" className="text-xs">価格$</Label>
@@ -403,39 +410,6 @@ export function ProcurementSettingsForm({
             </div>
           </div>
 
-          {/* 在庫キーワード */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-muted-foreground border-b pb-2">在庫監視キーワード</h3>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="inStockKeywords">在庫ありキーワード</Label>
-                <Input
-                  id="inStockKeywords"
-                  placeholder="入札する, カートに入れる"
-                  value={inStockKeywords}
-                  onChange={(e) => setInStockKeywords(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  カンマ区切りで複数入力可
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="outOfStockKeywords">在庫なしキーワード</Label>
-                <Input
-                  id="outOfStockKeywords"
-                  placeholder="終了, 売り切れ"
-                  value={outOfStockKeywords}
-                  onChange={(e) => setOutOfStockKeywords(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  カンマ区切りで複数入力可
-                </p>
-              </div>
-            </div>
-          </div>
-
           {/* メモ */}
           <div className="space-y-2">
             <Label htmlFor="memo">メモ</Label>
@@ -449,11 +423,7 @@ export function ProcurementSettingsForm({
           </div>
 
           <DialogFooter className="pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               キャンセル
             </Button>
             <Button type="submit">
