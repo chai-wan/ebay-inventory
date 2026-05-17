@@ -269,7 +269,7 @@ export default function ProcurementSettingsPage() {
                   <p className="text-sm text-muted-foreground">商品ページの監視設定を管理</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2">
                   <span className="text-xs text-muted-foreground whitespace-nowrap">為替レート</span>
                   <div className="flex items-center gap-1">
@@ -292,7 +292,7 @@ export default function ProcurementSettingsPage() {
                     {rateLoading ? "取得中..." : "更新"}
                   </button>
                 </div>
-                <Button onClick={() => setIsFormOpen(true)} className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90">
+                <Button onClick={() => setIsFormOpen(true)} className="w-full sm:w-auto" style={{backgroundColor:"#000", color:"#fff"}}>
                   <Plus className="mr-2 h-4 w-4" />
                   新規追加
                 </Button>
