@@ -7,12 +7,56 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
+// eBay出品を停止する関数
+async function endEbayListing(ebayItemId: string) {
+  const userToken = process.env.EBAY_USER_TOKEN
+  const clientId = process.env.EBAY_CLIENT_ID
+  const clientSecret = process.env.EBAY_CLIENT_SECRET
+
+  if (!userToken || !clientId || !clientSecret) return false
+
+  try {
+    const xmlBody = `<?xml version="1.0" encoding="utf-8"?>
+<EndItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">
+  <RequesterCredentials>
+    <eBayAuthToken>${userToken}</eBayAuthToken>
+  </RequesterCredentials>
+  <ItemID>${ebayItemId}</ItemID>
+  <EndingReason>NotAvailable</EndingReason>
+</EndItemRequest>`
+
+    const res = await fetch("https://api.ebay.com/ws/api.dll", {
+      method: "POST",
+      headers: {
+        "X-EBAY-API-COMPATIBILITY-LEVEL": "967",
+        "X-EBAY-API-CALL-NAME": "EndItem",
+        "X-EBAY-API-SITEID": "0",
+        "Content-Type": "text/xml",
+      },
+      body: xmlBody,
+    })
+
+    const text = await res.text()
+    return text.includes("<Ack>Success</Ack>")
+  } catch (err) {
+    console.error("eBay API エラー:", err)
+    return false
+  }
+}
+
+// eBayのURLからItem IDを抽出する関数
+function extractEbayItemId(ebayUrl: string): string | null {
+  if (!ebayUrl) return null
+  const match = ebayUrl.match(/\/itm\/(\d+)/)
+  return match ? match[1] : null
+}
+
 export async function GET() {
   try {
     // 監視中の商品を全件取得
     const { data: settings, error } = await supabase
       .from("procurement_settings")
-      .select("id, product_url, status, site_name")
+      .select("id, product_url, ebay_url, status, site_name")
       .eq("status", "monitoring")
 
     if (error) {
@@ -32,7 +76,6 @@ export async function GET() {
 
     for (const setting of settings) {
       try {
-        // 該当サイトのキーワードを取得
         const siteMaster = siteMasters?.find(
           (s) => s.site_name === setting.site_name
         )
@@ -73,6 +116,16 @@ export async function GET() {
           if (!inStock) newStatus = "error"
         }
 
+        let ebayEnded = false
+
+        // 在庫切れ検知 → eBay出品を停止
+        if (newStatus === "error" && setting.ebay_url) {
+          const itemId = extractEbayItemId(setting.ebay_url)
+          if (itemId) {
+            ebayEnded = await endEbayListing(itemId)
+          }
+        }
+
         // ステータスが変わった場合のみ更新
         if (newStatus !== setting.status) {
           await supabase
@@ -85,9 +138,9 @@ export async function GET() {
           id: setting.id,
           url: setting.product_url,
           status: newStatus,
+          ebayEnded,
         })
       } catch (err) {
-        // 個別エラーはerrorステータスに
         await supabase
           .from("procurement_settings")
           .update({ status: "error" })
