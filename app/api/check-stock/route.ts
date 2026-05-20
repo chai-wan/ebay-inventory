@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+// cheerioは今回使用しませんが、エラー防止のためインポートは残しています
 import * as cheerio from "cheerio"
 
 const supabase = createClient(
@@ -95,25 +96,44 @@ export async function GET() {
         })
 
         const html = await res.text()
-        const $ = cheerio.load(html)
-        const pageText = $("body").text()
-
         let newStatus = "monitoring"
 
-        // 在庫なしキーワードが存在する → エラー
-        if (outOfStockKeywords.length > 0) {
-          const outOfStock = outOfStockKeywords.some((kw: string) =>
-            pageText.includes(kw)
-          )
-          if (outOfStock) newStatus = "error"
-        }
+        // 【改修ポイント】メルカリとそれ以外で判定方法を分ける
+        if (setting.site_name === "mercari") {
+          // プランA：メルカリ専用の裏データ（JSON）判定
+          if (
+            html.includes("ITEM_STATUS_SOLD_OUT") || 
+            html.includes("http://schema.org/OutOfStock")
+          ) {
+            newStatus = "error" // 売り切れ
+          } else if (
+            html.includes("ITEM_STATUS_ON_SALE") || 
+            html.includes("http://schema.org/InStock")
+          ) {
+            newStatus = "monitoring" // 在庫あり
+          } else {
+            // 万が一データが取れなかった場合は空売り防止のためエラー扱い
+            newStatus = "error"
+          }
+        } else {
+          // メルカリ以外のサイト：HTML全体からキーワードを直接探す
+          const pageText = html 
 
-        // 在庫ありキーワードが存在しない → エラー
-        if (inStockKeywords.length > 0 && newStatus === "monitoring") {
-          const inStock = inStockKeywords.some((kw: string) =>
-            pageText.includes(kw)
-          )
-          if (!inStock) newStatus = "error"
+          // 在庫なしキーワードが存在する → エラー
+          if (outOfStockKeywords.length > 0) {
+            const outOfStock = outOfStockKeywords.some((kw: string) =>
+              pageText.includes(kw)
+            )
+            if (outOfStock) newStatus = "error"
+          }
+
+          // 在庫ありキーワードが存在しない → エラー
+          if (inStockKeywords.length > 0 && newStatus === "monitoring") {
+            const inStock = inStockKeywords.some((kw: string) =>
+              pageText.includes(kw)
+            )
+            if (!inStock) newStatus = "error"
+          }
         }
 
         let ebayEnded = false
