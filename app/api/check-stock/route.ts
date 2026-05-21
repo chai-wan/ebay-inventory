@@ -8,6 +8,13 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
+// Apifyから返ってくるデータ構造の型を定義（Vercelのビルドエラー防止）
+interface ApifyScrapedItem {
+  url: string;
+  html?: string;
+  [key: string]: any;
+}
+
 async function endEbayListing(ebayItemId: string) {
   const userToken = process.env.EBAY_USER_TOKEN
   const clientId = process.env.EBAY_CLIENT_ID
@@ -88,10 +95,9 @@ export async function GET() {
       }
     )
 
-    const scrapedItems = await apifyRes.json()
+    const scrapedItems = await apifyRes.json() as ApifyScrapedItem[]
     const results = []
 
-    // 全体の生データをのぞき見するためのデバッグ情報
     const globalDebug = {
       isResponseArray: Array.isArray(scrapedItems),
       scrapedCount: Array.isArray(scrapedItems) ? scrapedItems.length : 0,
@@ -108,9 +114,8 @@ export async function GET() {
           ? siteMaster.out_of_stock_keywords.split(",").map((k: string) => k.trim()).filter(Boolean)
           : []
 
-        // URLマッチングを緩くする（前方が一致するか、または含まれているか）
         const scrapedData = Array.isArray(scrapedItems) 
-          ? scrapedItems.find((item) => item.url && (item.url.includes(setting.product_url) || setting.product_url.includes(item.url)))
+          ? scrapedItems.find((item) => item && item.url && (item.url.includes(setting.product_url) || setting.product_url.includes(item.url)))
           : null
 
         let newStatus = "monitoring"
@@ -137,7 +142,7 @@ export async function GET() {
              } else if (debugInfo.hasOnSaleKw) {
                newStatus = "monitoring"
              } else {
-               newStatus = "error" // どちらも入っていない（ブロック画面などの可能性）
+               newStatus = "error"
              }
            } else {
              if (outOfStockKeywords.length > 0) {
