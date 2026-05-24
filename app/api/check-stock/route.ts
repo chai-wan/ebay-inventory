@@ -1,4 +1,3 @@
-// cache bust 1
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import * as cheerio from "cheerio"
@@ -49,28 +48,33 @@ function extractEbayItemId(ebayUrl: string): string | null {
 // 在庫判定ロジック
 function checkStockStatus(html: string, siteName: string, inStockKeywords: string[], outOfStockKeywords: string[]): "monitoring" | "error" {
 
-  // メルカリ専用：JSON-LDのschema.orgステータスで判定（最も信頼性が高い）
+  // 在庫なしキーワードが見つかった場合のみerror（安全側の判定）
+  // メルカリ専用キーワード
   if (siteName === "mercari") {
     if (html.includes('"availability":"http://schema.org/OutOfStock"') ||
         html.includes('"availability": "http://schema.org/OutOfStock"') ||
         html.includes("ITEM_STATUS_SOLD_OUT") ||
-        html.includes("sold_out")) {
+        html.includes('"status":"SOLD_OUT"') ||
+        html.includes("sold-out")) {
       return "error"
     }
+    // 在庫ありキーワードが見つかればmonitoring
     if (html.includes('"availability":"http://schema.org/InStock"') ||
         html.includes('"availability": "http://schema.org/InStock"') ||
-        html.includes("ITEM_STATUS_ON_SALE")) {
+        html.includes("ITEM_STATUS_ON_SALE") ||
+        html.includes('"status":"ON_SALE"')) {
       return "monitoring"
     }
-    // どちらも見つからない場合はエラー扱い
-    return "error"
+    // どちらも見つからない場合はmonitoringのまま（誤検知を防ぐ）
+    return "monitoring"
   }
 
-  // その他サイト：サイトマスタのキーワードで判定
+  // その他サイト：在庫なしキーワードが見つかった場合のみerror
   if (outOfStockKeywords.length > 0) {
     const outOfStock = outOfStockKeywords.some(kw => html.includes(kw))
     if (outOfStock) return "error"
   }
+  // 在庫ありキーワードが設定されている場合、見つからなければerror
   if (inStockKeywords.length > 0) {
     const inStock = inStockKeywords.some(kw => html.includes(kw))
     if (!inStock) return "error"
