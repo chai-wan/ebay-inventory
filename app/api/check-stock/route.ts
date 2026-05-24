@@ -1,4 +1,3 @@
-// cache bust final
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import * as cheerio from "cheerio"
@@ -49,8 +48,9 @@ function checkStockStatus(html: string, siteName: string, inStockKeywords: strin
 
   // メルカリ専用判定
   if (siteName === "mercari") {
-    // 在庫なしを先に確認
-    if (html.includes('aria-label="売り切れ')) return "error"
+    // 在庫なしを先に確認（優先度高）
+    if (html.includes('"SOLD_OUT"') ||
+        html.includes('aria-label="売り切れ')) return "error"
     // 在庫ありキーワードのいずれかがあればmonitoring
     if (html.includes("購入手続きへ") ||
         html.includes("ログイン / 会員登録して購入") ||
@@ -115,12 +115,7 @@ export async function GET() {
         const debugInfo = {
           hasPurchase: html.includes("購入手続きへ"),
           hasSoldOutLabel: html.includes('aria-label="売り切れ'),
-          hasSoldOut: html.includes("売り切れ"),
-          hasLoginPurchase: html.includes("ログイン / 会員登録して購入"),
-          hasSoldOutText: html.includes("SOLD OUT"),
-          hasStatusSoldOut: html.includes("sold_out"),
-          hasStatusSoldOut2: html.includes("SOLD_OUT"),
-          soldOutContext: (() => { const i = html.indexOf("売り切れ"); return i >= 0 ? html.substring(i - 30, i + 50) : "not found" })(),
+          hasSoldOut: html.includes('"SOLD_OUT"'),
           htmlLength: html.length,
         }
         console.log(`[check-stock] ${setting.site_name}:`, debugInfo)
