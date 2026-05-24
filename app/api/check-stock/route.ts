@@ -115,7 +115,12 @@ export async function GET() {
         const debugInfo = {
           hasPurchase: html.includes("購入手続きへ"),
           hasSoldOutLabel: html.includes('aria-label="売り切れ'),
+          hasSoldOut: html.includes("売り切れ"),
           hasLoginPurchase: html.includes("ログイン / 会員登録して購入"),
+          hasSoldOutText: html.includes("SOLD OUT"),
+          hasStatusSoldOut: html.includes("sold_out"),
+          hasStatusSoldOut2: html.includes("SOLD_OUT"),
+          soldOutContext: (() => { const i = html.indexOf("売り切れ"); return i >= 0 ? html.substring(i - 30, i + 50) : "not found" })(),
           htmlLength: html.length,
         }
         console.log(`[check-stock] ${setting.site_name}:`, debugInfo)
