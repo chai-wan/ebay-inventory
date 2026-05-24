@@ -1,3 +1,4 @@
+// cache bust 2
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import * as cheerio from "cheerio"
