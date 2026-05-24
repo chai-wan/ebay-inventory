@@ -47,15 +47,16 @@ function extractEbayItemId(ebayUrl: string): string | null {
 function checkStockStatus(html: string, siteName: string, inStockKeywords: string[], outOfStockKeywords: string[]): "monitoring" | "error" {
 
   // メルカリ専用判定
+
   if (siteName === "mercari") {
-    // 在庫なしを先に確認（優先度高）
-    if (html.includes('SOLD_OUT') ||
+    // 在庫なしを先に確認
+    if (html.includes('"SALE_STATUS_SOLD_OUT"') ||
         html.includes('aria-label="売り切れ')) return "error"
-    // 在庫ありキーワードのいずれかがあればmonitoring
-    if (html.includes("購入手続きへ") ||
+    // 在庫あり
+    if (html.includes('"SALE_STATUS_ON_SALE"') ||
+        html.includes("購入手続きへ") ||
         html.includes("ログイン / 会員登録して購入") ||
         html.includes("会員登録 / ログインして購入")) return "monitoring"
-    // どちらも見つからない場合はmonitoringのまま（誤検知防止）
     return "monitoring"
   }
 
@@ -114,11 +115,9 @@ export async function GET() {
 
         const debugInfo = {
           hasPurchase: html.includes("購入手続きへ"),
+          hasOnSale: html.includes('"SALE_STATUS_ON_SALE"'),
+          hasSoldOut: html.includes('"SALE_STATUS_SOLD_OUT"'),
           hasSoldOutLabel: html.includes('aria-label="売り切れ'),
-          hasSoldOut2: html.includes('SOLD_OUT'),
-          soldOutContext1: (() => { const i = html.indexOf("SOLD_OUT"); return i >= 0 ? html.substring(i - 100, i + 100) : "not found" })(),
-          soldOutContext2: (() => { const i = html.indexOf("SOLD_OUT", html.indexOf("SOLD_OUT") + 1); return i >= 0 ? html.substring(i - 100, i + 100) : "not found" })(),
-          soldOutContext3: (() => { const i = html.indexOf("SOLD_OUT", html.indexOf("SOLD_OUT", html.indexOf("SOLD_OUT") + 1) + 1); return i >= 0 ? html.substring(i - 100, i + 100) : "not found" })(),
           htmlLength: html.length,
         }
         console.log(`[check-stock] ${setting.site_name}:`, debugInfo)
