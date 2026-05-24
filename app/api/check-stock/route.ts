@@ -114,11 +114,16 @@ export async function GET() {
         const $ = cheerio.load(html)
 
         const debugInfo = {
-          hasPurchase: html.includes("購入手続きへ"),
-          hasOnSale: html.includes('"SALE_STATUS_ON_SALE"'),
-          hasSoldOut: html.includes('"SALE_STATUS_SOLD_OUT"'),
-          hasSoldOutLabel: html.includes('aria-label="売り切れ'),
-          htmlLength: html.length,
+  hasPurchase: html.includes("購入手続きへ"),
+  test1: html.includes('"SALE_STATUS_SOLD_OUT"'),
+  test2: html.includes("SALE_STATUS_SOLD_OUT"),
+  test3: html.includes("SALE_STATUS_ON_SALE"),
+  test4: html.includes('"SALE_STATUS_ON_SALE"'),
+  saleStatusContext: (() => { 
+    const i = html.indexOf("SALE_STATUS"); 
+    return i >= 0 ? html.substring(i - 30, i + 80) : "not found" 
+  })(),
+  htmlLength: html.length,
         }
         console.log(`[check-stock] ${setting.site_name}:`, debugInfo)
 
