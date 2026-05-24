@@ -1,3 +1,4 @@
+// cache bust final
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import * as cheerio from "cheerio"
@@ -10,7 +11,6 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-// eBay出品を停止する関数
 async function endEbayListing(ebayItemId: string): Promise<boolean> {
   const userToken = process.env.EBAY_USER_TOKEN
   if (!userToken) return false
@@ -45,7 +45,6 @@ function extractEbayItemId(ebayUrl: string): string | null {
   return match ? match[1] : null
 }
 
-// 在庫判定ロジック
 function checkStockStatus(html: string, siteName: string, inStockKeywords: string[], outOfStockKeywords: string[]): "monitoring" | "error" {
 
   // メルカリ専用判定
@@ -65,7 +64,6 @@ function checkStockStatus(html: string, siteName: string, inStockKeywords: strin
     const outOfStock = outOfStockKeywords.some(kw => html.includes(kw))
     if (outOfStock) return "error"
   }
-  // 在庫ありキーワードが設定されている場合、見つからなければerror
   if (inStockKeywords.length > 0) {
     const inStock = inStockKeywords.some(kw => html.includes(kw))
     if (!inStock) return "error"
@@ -75,7 +73,6 @@ function checkStockStatus(html: string, siteName: string, inStockKeywords: strin
 
 export async function GET() {
   try {
-    // 監視中の商品を全件取得
     const { data: settings, error } = await supabase
       .from("procurement_settings")
       .select("id, product_url, ebay_url, status, site_name")
@@ -86,7 +83,6 @@ export async function GET() {
       return NextResponse.json({ message: "監視中の商品なし", checked: 0 })
     }
 
-    // サイトマスタを取得
     const { data: siteMasters } = await supabase
       .from("site_masters")
       .select("site_name, in_stock_keywords, out_of_stock_keywords")
@@ -103,7 +99,6 @@ export async function GET() {
           ? siteMaster.out_of_stock_keywords.split(",").map((k: string) => k.trim()).filter(Boolean)
           : []
 
-        // 商品ページを取得（キャッシュ無効化）
         const res = await fetch(setting.product_url, {
           cache: "no-store",
           headers: {
@@ -117,12 +112,10 @@ export async function GET() {
         const html = await res.text()
         const $ = cheerio.load(html)
 
-        // デバッグ用：HTML内の重要なキーワードをログ出力
         const debugInfo = {
-          hasInStock: html.includes("InStock"),
-          hasOutOfStock: html.includes("OutOfStock"),
-          hasOnSale: html.includes("ITEM_STATUS_ON_SALE"),
-          hasSoldOut: html.includes("ITEM_STATUS_SOLD_OUT"),
+          hasPurchase: html.includes("購入手続きへ"),
+          hasSoldOutLabel: html.includes('aria-label="売り切れ'),
+          hasLoginPurchase: html.includes("ログイン / 会員登録して購入"),
           htmlLength: html.length,
         }
         console.log(`[check-stock] ${setting.site_name}:`, debugInfo)
