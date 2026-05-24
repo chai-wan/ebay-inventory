@@ -1,5 +1,5 @@
 // deploy trigger
-// cache bust 2
+// cache bust 3
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import * as cheerio from "cheerio"
