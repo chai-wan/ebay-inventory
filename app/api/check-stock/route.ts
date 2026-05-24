@@ -129,15 +129,11 @@ export async function GET() {
         const $ = cheerio.load(html)
 
         // デバッグ用：HTML内の重要なキーワードをログ出力
-        const outOfStockIndex = html.indexOf("OutOfStock")
         const debugInfo = {
-          hasInStock: html.includes("InStock"),
-          hasOutOfStock: html.includes("OutOfStock"),
-          hasOnSaleStatus: html.includes('"status":"ON_SALE"'),
-          hasSoldOutStatus: html.includes('"status":"SOLD_OUT"'),
-          hasSchemaInStock: html.includes("schema.org/InStock"),
-          hasSchemaOutOfStock: html.includes("schema.org/OutOfStock"),
-          outOfStockContext: html.substring(outOfStockIndex - 50, outOfStockIndex + 50),
+          hasPurchase: html.includes("購入手続きへ"),
+          hasLoginPurchase: html.includes("ログイン / 会員登録して購入"),
+          hasLoginPurchase2: html.includes("会員登録 / ログインして購入"),
+          hasSoldOut: html.includes('aria-label="売り切れ'),
           htmlLength: html.length,
         }
         console.log(`[check-stock] ${setting.site_name}:`, debugInfo)
