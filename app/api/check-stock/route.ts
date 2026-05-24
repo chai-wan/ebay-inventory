@@ -129,16 +129,16 @@ export async function GET() {
         const $ = cheerio.load(html)
 
         // デバッグ用：HTML内の重要なキーワードをログ出力
+        const outOfStockIndex = html.indexOf("OutOfStock")
         const debugInfo = {
-            hasInStock: html.includes("InStock"),
-            hasOutOfStock: html.includes("OutOfStock"),
-            hasOnSale: html.includes("ITEM_STATUS_ON_SALE"),
-            hasSoldOut: html.includes("ITEM_STATUS_SOLD_OUT"),
-            hasOnSaleStatus: html.includes('"status":"ON_SALE"'),
-            hasSoldOutStatus: html.includes('"status":"SOLD_OUT"'),
-            hasSchemaInStock: html.includes("schema.org/InStock"),
-            hasSchemaOutOfStock: html.includes("schema.org/OutOfStock"),
-            htmlLength: html.length,
+          hasInStock: html.includes("InStock"),
+          hasOutOfStock: html.includes("OutOfStock"),
+          hasOnSaleStatus: html.includes('"status":"ON_SALE"'),
+          hasSoldOutStatus: html.includes('"status":"SOLD_OUT"'),
+          hasSchemaInStock: html.includes("schema.org/InStock"),
+          hasSchemaOutOfStock: html.includes("schema.org/OutOfStock"),
+          outOfStockContext: html.substring(outOfStockIndex - 50, outOfStockIndex + 50),
+          htmlLength: html.length,
         }
         console.log(`[check-stock] ${setting.site_name}:`, debugInfo)
 
