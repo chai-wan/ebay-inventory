@@ -1,5 +1,3 @@
-// deploy trigger
-// cache bust 3
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import * as cheerio from "cheerio"
@@ -50,24 +48,15 @@ function extractEbayItemId(ebayUrl: string): string | null {
 // 在庫判定ロジック
 function checkStockStatus(html: string, siteName: string, inStockKeywords: string[], outOfStockKeywords: string[]): "monitoring" | "error" {
 
-  // 在庫なしキーワードが見つかった場合のみerror（安全側の判定）
-  // メルカリ専用キーワード
+  // メルカリ専用判定
   if (siteName === "mercari") {
-    if (html.includes('"availability":"http://schema.org/OutOfStock"') ||
-        html.includes('"availability": "http://schema.org/OutOfStock"') ||
-        html.includes("ITEM_STATUS_SOLD_OUT") ||
-        html.includes('"status":"SOLD_OUT"') ||
-        html.includes("sold-out")) {
-      return "error"
-    }
-    // 在庫ありキーワードが見つかればmonitoring
-    if (html.includes('"availability":"http://schema.org/InStock"') ||
-        html.includes('"availability": "http://schema.org/InStock"') ||
-        html.includes("ITEM_STATUS_ON_SALE") ||
-        html.includes('"status":"ON_SALE"')) {
-      return "monitoring"
-    }
-    // どちらも見つからない場合はmonitoringのまま（誤検知を防ぐ）
+    // 在庫なしを先に確認
+    if (html.includes('aria-label="売り切れ')) return "error"
+    // 在庫ありキーワードのいずれかがあればmonitoring
+    if (html.includes("購入手続きへ") ||
+        html.includes("ログイン / 会員登録して購入") ||
+        html.includes("会員登録 / ログインして購入")) return "monitoring"
+    // どちらも見つからない場合はmonitoringのまま（誤検知防止）
     return "monitoring"
   }
 
@@ -130,10 +119,10 @@ export async function GET() {
 
         // デバッグ用：HTML内の重要なキーワードをログ出力
         const debugInfo = {
-          hasPurchase: html.includes("購入手続きへ"),
-          hasLoginPurchase: html.includes("ログイン / 会員登録して購入"),
-          hasLoginPurchase2: html.includes("会員登録 / ログインして購入"),
-          hasSoldOut: html.includes('aria-label="売り切れ'),
+          hasInStock: html.includes("InStock"),
+          hasOutOfStock: html.includes("OutOfStock"),
+          hasOnSale: html.includes("ITEM_STATUS_ON_SALE"),
+          hasSoldOut: html.includes("ITEM_STATUS_SOLD_OUT"),
           htmlLength: html.length,
         }
         console.log(`[check-stock] ${setting.site_name}:`, debugInfo)
