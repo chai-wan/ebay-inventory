@@ -49,7 +49,7 @@ function checkStockStatus(html: string, siteName: string, inStockKeywords: strin
   // メルカリ専用判定
   if (siteName === "mercari") {
     // 在庫なしを先に確認（優先度高）
-    if (html.includes('"SOLD_OUT"') ||
+    if (html.includes('SOLD_OUT') ||
         html.includes('aria-label="売り切れ')) return "error"
     // 在庫ありキーワードのいずれかがあればmonitoring
     if (html.includes("購入手続きへ") ||
