@@ -117,21 +117,12 @@ export async function GET() {
         const debugInfo = {
   hasPurchase: html.includes("購入手続きへ"),
   hasSoldOutLabel: html.includes('aria-label="売り切れ'),
-  context1: (() => {
-    const i = html.indexOf('"saleStatus":"')
-    return i >= 0 ? html.substring(i, i + 50) : "not found"
-  })(),
-  context2: (() => {
-    const i = html.indexOf('"status":"ITEM_STATUS')
-    return i >= 0 ? html.substring(i, i + 50) : "not found"
-  })(),
-  context3: (() => {
-    const i = html.indexOf('"soldOut":t')
-    return i >= 0 ? html.substring(i, i + 50) : "not found"
-  })(),
-  context4: (() => {
-    const i = html.indexOf('"onSale":t')
-    return i >= 0 ? html.substring(i, i + 50) : "not found"
+  hasSoldOutButton: html.includes("売り切れ"),
+  hasBuyButton: html.includes("購入する"),
+  hasAddToCart: html.includes("カートに入れる"),
+  soldOutButtonContext: (() => {
+    const i = html.indexOf("売り切れ")
+    return i >= 0 ? html.substring(i - 50, i + 100) : "not found"
   })(),
   htmlLength: html.length,
         }
