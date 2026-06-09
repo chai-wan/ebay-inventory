@@ -87,6 +87,39 @@ export function ProcurementSettingsTable({
     }
   }
 
+  const getMercariBadge = (s?: string | null) => {
+    switch (s) {
+      case "active":
+        return (
+          <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/15">
+            在庫あり
+          </Badge>
+        )
+      case "sold_out":
+        return <Badge variant="destructive">売り切れ</Badge>
+      case "hold":
+        return <Badge variant="secondary">保留</Badge>
+      default:
+        return (
+          <Badge variant="outline" className="text-muted-foreground">
+            未チェック
+          </Badge>
+        )
+    }
+  }
+
+  const formatCheckedAt = (d?: Date | null) => {
+    if (!d) return "未チェック"
+    const dt = d instanceof Date ? d : new Date(d)
+    if (isNaN(dt.getTime())) return "未チェック"
+    return dt.toLocaleString("ja-JP", {
+      month: "numeric",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  }
+
   const getProfitDisplay = (setting: ProcurementSetting) => {
     const profit = calcProfitJpy(setting, exchangeRate)
     const isPositive = profit >= 0
@@ -117,6 +150,7 @@ export function ProcurementSettingsTable({
                 <TableHead className="w-[150px]">eBay参考URL</TableHead>
                 <TableHead className="w-[150px]">仕入金額</TableHead>
                 <TableHead className="w-[130px]">販売価格 / 利益</TableHead>
+                <TableHead className="w-[110px]">在庫</TableHead>
                 <TableHead className="w-[80px]">ステータス</TableHead>
                 <TableHead className="w-[60px] text-right">操作</TableHead>
               </TableRow>
@@ -124,7 +158,7 @@ export function ProcurementSettingsTable({
             <TableBody>
               {settings.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
                     登録された設定がありません
                   </TableCell>
                 </TableRow>
@@ -195,6 +229,14 @@ export function ProcurementSettingsTable({
                         {getProfitDisplay(setting)}
                       </div>
                     </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        {getMercariBadge(setting.mercariStatus)}
+                        <div className="text-xs text-muted-foreground">
+                          {formatCheckedAt(setting.mercariCheckedAt)}
+                        </div>
+                      </div>
+                    </TableCell>
                     <TableCell>{getStatusBadge(setting.status)}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
@@ -261,6 +303,7 @@ export function ProcurementSettingsTable({
                   <div className="space-y-1 flex-1 min-w-0">
                     <div className="font-medium flex items-center gap-2 flex-wrap">
                       {getSiteDisplayName(setting.siteName)}
+                      {getMercariBadge(setting.mercariStatus)}
                       {getStatusBadge(setting.status)}
                     </div>
                     {setting.ebayUrl ? (
@@ -347,6 +390,11 @@ export function ProcurementSettingsTable({
                       </a>
                     </div>
                   )}
+                </div>
+
+                {/* メルカリ最終チェック */}
+                <div className="text-xs text-muted-foreground">
+                  最終チェック: {formatCheckedAt(setting.mercariCheckedAt)}
                 </div>
 
                 {/* Price Info + Profit */}
