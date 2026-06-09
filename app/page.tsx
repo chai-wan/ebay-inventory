@@ -88,6 +88,8 @@ export default function ProcurementSettingsPage() {
       shippingCostUsd: row.shipping_cost_usd,
       shippingCostJpy: row.shipping_cost_jpy,
       customsDutyJpy: row.customs_duty_jpy,
+      mercariStatus: row.mercari_status ?? null,
+      mercariCheckedAt: row.mercari_checked_at ? new Date(row.mercari_checked_at) : null,
     }))
     setSettings(mapped)
     setLoading(false)
