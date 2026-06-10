@@ -31,6 +31,7 @@ import { useState } from "react"
 import { MoreHorizontal, Pencil, Trash2, RefreshCw, Play, Pause, ExternalLink } from "lucide-react"
 import type { ProcurementSetting } from "./procurement-settings-form"
 import type { SiteMaster } from "./site-master"
+import { extractEbayItemId } from "@/lib/utils"
 
 interface ProcurementSettingsTableProps {
   settings: ProcurementSetting[]
@@ -144,13 +145,14 @@ export function ProcurementSettingsTable({
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
-                <TableHead className="w-[100px]">仕入元</TableHead>
                 <TableHead className="min-w-[250px]">eBay商品名</TableHead>
+                <TableHead className="w-[140px]">ItemID</TableHead>
                 <TableHead className="w-[180px]">仕入URL</TableHead>
                 <TableHead className="w-[150px]">eBay参考URL</TableHead>
                 <TableHead className="w-[150px]">仕入金額</TableHead>
                 <TableHead className="w-[130px]">販売価格 / 利益</TableHead>
                 <TableHead className="w-[110px]">在庫</TableHead>
+                <TableHead className="w-[100px]">仕入元</TableHead>
                 <TableHead className="w-[80px]">ステータス</TableHead>
                 <TableHead className="w-[60px] text-right">操作</TableHead>
               </TableRow>
@@ -158,16 +160,13 @@ export function ProcurementSettingsTable({
             <TableBody>
               {settings.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
                     登録された設定がありません
                   </TableCell>
                 </TableRow>
               ) : (
                 settings.map((setting) => (
                   <TableRow key={setting.id}>
-                    <TableCell className="font-medium">
-                      {getSiteDisplayName(setting.siteName)}
-                    </TableCell>
                     <TableCell>
                       {setting.ebayUrl ? (
                         <a
@@ -184,6 +183,23 @@ export function ProcurementSettingsTable({
                           {setting.ebayProductName || <span className="text-muted-foreground">-</span>}
                         </div>
                       )}
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        const itemId = extractEbayItemId(setting.ebayUrl)
+                        return itemId ? (
+                          <a
+                            href={setting.ebayUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline text-sm tabular-nums"
+                          >
+                            {itemId}
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">-</span>
+                        )
+                      })()}
                     </TableCell>
                     <TableCell>
                       <a
@@ -236,6 +252,9 @@ export function ProcurementSettingsTable({
                           {formatCheckedAt(setting.mercariCheckedAt)}
                         </div>
                       </div>
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {getSiteDisplayName(setting.siteName)}
                     </TableCell>
                     <TableCell>{getStatusBadge(setting.status)}</TableCell>
                     <TableCell className="text-right">
@@ -364,6 +383,19 @@ export function ProcurementSettingsTable({
 
                 {/* URLs */}
                 <div className="space-y-1.5 text-sm">
+                  {extractEbayItemId(setting.ebayUrl) && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground w-14 shrink-0">ItemID</span>
+                      <a
+                        href={setting.ebayUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline tabular-nums"
+                      >
+                        {extractEbayItemId(setting.ebayUrl)}
+                      </a>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2">
                     <span className="text-muted-foreground w-14 shrink-0">仕入</span>
                     <a
