@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, Package } from "lucide-react"
+import { Plus, Package, Search } from "lucide-react"
 import { ProcurementSettingsForm, type ProcurementSetting } from "@/components/procurement-settings-form"
 import { ProcurementSettingsTable } from "@/components/procurement-settings-table"
 import { SiteMasterPage } from "@/components/site-master-page"
@@ -22,6 +22,7 @@ export default function ProcurementSettingsPage() {
   const [exchangeRateInput, setExchangeRateInput] = useState<string>("150")
   const [loading, setLoading] = useState(true)
   const [rateLoading, setRateLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState("")
 
   useEffect(() => {
     loadSiteMasters()
@@ -232,6 +233,13 @@ export default function ProcurementSettingsPage() {
   }, 0)
   const totalSales = settings.reduce((sum, s) => sum + s.sellingPriceUsd, 0)
 
+  // eBay商品名で絞り込み（空なら全件）
+  const filteredSettings = searchQuery.trim()
+    ? settings.filter((s) =>
+        (s.ebayProductName || "").toLowerCase().includes(searchQuery.trim().toLowerCase())
+      )
+    : settings
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-6 sm:py-8 max-w-6xl">
@@ -324,13 +332,39 @@ export default function ProcurementSettingsPage() {
               </div>
             </div>
 
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                inputMode="search"
+                placeholder="eBay商品名で検索"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground hover:text-foreground"
+                >
+                  クリア
+                </button>
+              )}
+            </div>
+
+            {searchQuery.trim() && (
+              <div className="mb-2 text-sm text-muted-foreground">
+                {filteredSettings.length} 件ヒット（全{settings.length}件中）
+              </div>
+            )}
+
             {loading ? (
               <div className="rounded-lg border p-8 text-center text-muted-foreground">
                 読み込み中...
               </div>
             ) : (
               <ProcurementSettingsTable
-                settings={settings}
+                settings={filteredSettings}
                 siteMasters={siteMasters}
                 exchangeRate={exchangeRate}
                 onEdit={handleEdit}
