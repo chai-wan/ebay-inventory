@@ -9,6 +9,7 @@ import { ProcurementSettingsTable } from "@/components/procurement-settings-tabl
 import { SiteMasterPage } from "@/components/site-master-page"
 import type { SiteMaster } from "@/components/site-master"
 import { supabase } from "@/lib/supabase"
+import { extractEbayItemId } from "@/lib/utils"
 
 type Tab = "procurement" | "site-master"
 
@@ -233,11 +234,21 @@ export default function ProcurementSettingsPage() {
   }, 0)
   const totalSales = settings.reduce((sum, s) => sum + s.sellingPriceUsd, 0)
 
-  // eBay商品名で絞り込み（空なら全件）
+  // eBay商品名・ItemID・URL（メルカリ/eBay）で絞り込み（空なら全件）
   const filteredSettings = searchQuery.trim()
-    ? settings.filter((s) =>
-        (s.ebayProductName || "").toLowerCase().includes(searchQuery.trim().toLowerCase())
-      )
+    ? settings.filter((s) => {
+        const q = searchQuery.trim().toLowerCase()
+        const itemId = extractEbayItemId(s.ebayUrl) || ""
+        return [
+          s.ebayProductName,
+          itemId,
+          s.productUrl,
+          s.ebayUrl,
+          s.ebayReferenceUrl,
+        ]
+          .filter(Boolean)
+          .some((v) => v!.toLowerCase().includes(q))
+      })
     : settings
 
   return (
@@ -337,7 +348,7 @@ export default function ProcurementSettingsPage() {
               <Input
                 type="text"
                 inputMode="search"
-                placeholder="eBay商品名で検索"
+                placeholder="eBay商品名・ItemID・URLで検索"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
