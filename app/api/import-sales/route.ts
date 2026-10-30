@@ -200,28 +200,10 @@ export async function POST(req: Request) {
     added = data?.length ?? 0
   }
 
-  // 推定のままの手数料を、eBayのアカウント明細の実額に置き換える
-  const fees = await getAccountFees(token, from, to)
-  let feeUpdated = 0
-  if (!fees.error) {
-    const { data: pending } = await supabase
-      .from("sales")
-      .select("id, line_item_id, item_id")
-      .eq("fee_estimated", true)
-    const perItemCount = new Map<string, number>()
-    for (const p of pending ?? []) perItemCount.set(p.item_id, (perItemCount.get(p.item_id) ?? 0) + 1)
-    for (const p of pending ?? []) {
-      let fee = fees.byLine.get(p.line_item_id)
-      // 同じ商品が1回しか売れていなければ、商品単位の合計を使う
-      if (fee === undefined && perItemCount.get(p.item_id) === 1) fee = fees.byItem.get(p.item_id)
-      if (fee === undefined) continue
-      const { error } = await supabase
-        .from("sales")
-        .update({ ebay_fee_usd: Math.round(fee * 100) / 100, fee_estimated: false })
-        .eq("id", p.id)
-      if (!error) feeUpdated++
-    }
-  }
+  // 注意：eBayのアカウント明細（GetAccount）には最終価値手数料の本体が載らず、
+  // 実額より大幅に低くなるため使わない。実額は Finances API で取る予定。
+  const feeUpdated = 0
+  const fees = { entries: 0, error: "未対応（推定値を表示中）" }
 
   return NextResponse.json({
     ok: true,
