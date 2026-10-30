@@ -51,7 +51,14 @@ export function SalesPage() {
     try {
       const res = await fetch("/api/import-sales?days=90", { method: "POST" })
       const j = await res.json()
-      setImportMsg(j.ok ? `直近90日の注文 ${j.found}件を確認、新しく ${j.added}件を追加しました` : `取り込み失敗：${j.error}`)
+      if (j.ok) {
+        const feePart = j.feeError
+          ? `（手数料の実額は取れませんでした：${j.feeError}）`
+          : `、手数料の実額を ${j.feeUpdated}件反映しました（明細${j.feeEntries}行）`
+        setImportMsg(`直近90日の注文 ${j.found}件を確認、新しく ${j.added}件を追加${feePart}`)
+      } else {
+        setImportMsg(`取り込み失敗：${j.error}`)
+      }
       if (j.ok) await load()
     } catch {
       setImportMsg("取り込み失敗：通信エラー")
