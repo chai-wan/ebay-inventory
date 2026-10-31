@@ -53,8 +53,8 @@ export function SalesPage() {
       const j = await res.json()
       if (j.ok) {
         const feePart = j.feeError
-          ? `（手数料の実額は取れませんでした：${j.feeError}）`
-          : `、手数料の実額を ${j.feeUpdated}件反映しました（明細${j.feeEntries}行）`
+          ? `（手数料：${j.feeError}）`
+          : `、手数料の実額を ${j.feeUpdated}件反映しました（eBayの取引${j.feeEntries}件を確認）`
         setImportMsg(`直近90日の注文 ${j.found}件を確認、新しく ${j.added}件を追加${feePart}`)
       } else {
         setImportMsg(`取り込み失敗：${j.error}`)
@@ -141,6 +141,12 @@ export function SalesPage() {
           {importing ? "取り込み中…" : "eBayから取り込む"}
         </Button>
       </div>
+
+      <p className="text-xs text-muted-foreground -mt-3">
+        手数料の実額を取るには、最初に1回だけ{" "}
+        <a href="/api/ebay-oauth/start" className="underline">eBayと連携</a>
+        してください（あとから再連携しても大丈夫です）。
+      </p>
 
       {importMsg && <p className="text-sm rounded-md border bg-muted/40 px-3 py-2">{importMsg}</p>}
       {loadError && (

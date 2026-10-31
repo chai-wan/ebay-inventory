@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js"
 import * as cheerio from "cheerio"
 import { extractEbayItemId } from "@/lib/utils"
 import { estimateEbayFeeUsd } from "@/lib/sales"
+import { getAccessToken } from "@/lib/ebay-oauth"
 
 // eBayの売れた注文を読み取り、sales テーブルに「新しいものだけ」追加する。
 // 出品には一切触れない（GetOrders は読み取り専用）。
@@ -42,60 +43,6 @@ async function getOrdersPage(token: string, from: Date, to: Date, page: number) 
     body,
   })
   return cheerio.load(await res.text(), { xmlMode: true })
-}
-
-// eBayのアカウント明細（手数料の請求記録）を取り、明細ごとの手数料合計を返す。
-// キーは「ItemID-TransactionID」と「ItemID」の2種類。USD以外の記録は使わない。
-async function getAccountFees(token: string, from: Date, to: Date) {
-  const byLine = new Map<string, number>()
-  const byItem = new Map<string, number>()
-  let entries = 0
-  let error: string | null = null
-  for (let page = 1; page <= 10; page++) {
-    const body = `<?xml version="1.0" encoding="utf-8"?>
-<GetAccountRequest xmlns="urn:ebay:apis:eBLBaseComponents">
-  <RequesterCredentials><eBayAuthToken>${token}</eBayAuthToken></RequesterCredentials>
-  <AccountHistorySelection>BetweenSpecifiedDates</AccountHistorySelection>
-  <BeginDate>${from.toISOString()}</BeginDate>
-  <EndDate>${to.toISOString()}</EndDate>
-  <Pagination><EntriesPerPage>2000</EntriesPerPage><PageNumber>${page}</PageNumber></Pagination>
-</GetAccountRequest>`
-    const res = await fetch("https://api.ebay.com/ws/api.dll", {
-      method: "POST",
-      cache: "no-store",
-      headers: {
-        "X-EBAY-API-COMPATIBILITY-LEVEL": "967",
-        "X-EBAY-API-CALL-NAME": "GetAccount",
-        "X-EBAY-API-SITEID": "0",
-        "Content-Type": "text/xml",
-      },
-      body,
-    })
-    const $ = cheerio.load(await res.text(), { xmlMode: true })
-    const ack = $("GetAccountResponse > Ack").text()
-    if (ack !== "Success" && ack !== "Warning") {
-      error = $("Errors > LongMessage").first().text() || "アカウント明細を取得できませんでした"
-      break
-    }
-    $("AccountEntries > AccountEntry").each((_, e) => {
-      const E = $(e)
-      const type = E.children("AccountDetailsEntryType").text()
-      const itemId = E.children("ItemID").text()
-      const amt = E.children("GrossDetailAmount")
-      if (!itemId || itemId === "0" || amt.attr("currencyID") !== "USD") return
-      let v: number
-      if (type.startsWith("Fee")) v = Math.abs(num(amt.text()))
-      else if (type.startsWith("Credit")) v = -Math.abs(num(amt.text()))
-      else return
-      entries++
-      const tx = E.children("TransactionID").text()
-      if (tx && tx !== "0") byLine.set(`${itemId}-${tx}`, (byLine.get(`${itemId}-${tx}`) ?? 0) + v)
-      byItem.set(itemId, (byItem.get(itemId) ?? 0) + v)
-    })
-    const total = parseInt($("PaginationResult > TotalNumberOfPages").text()) || 1
-    if (page >= total) break
-  }
-  return { byLine, byItem, entries, error }
 }
 
 async function fetchRate(): Promise<number> {
@@ -200,10 +147,70 @@ export async function POST(req: Request) {
     added = data?.length ?? 0
   }
 
-  // 注意：eBayのアカウント明細（GetAccount）には最終価値手数料の本体が載らず、
-  // 実額より大幅に低くなるため使わない。実額は Finances API で取る予定。
-  const feeUpdated = 0
-  const fees = { entries: 0, error: "未対応（推定値を表示中）" }
+  // 手数料の実額：eBay連携済みなら Finances API から取って、推定のままの行を置き換える
+  let feeUpdated = 0
+  const fees: { entries: number; error: string | null } = { entries: 0, error: null }
+  try {
+    const access = await getAccessToken()
+    if (!access) {
+      fees.error = "eBay未連携（推定値を表示中）"
+    } else {
+      const feeByLine = new Map<string, number>() // 明細ID → 手数料(USD)
+      const feeByOrder = new Map<string, number>() // 注文ID → 手数料(USD)
+      const range = `[${from.toISOString()}..${to.toISOString()}]`
+      for (let offset = 0; offset < 5000; offset += 200) {
+        const q = new URLSearchParams({ limit: "200", offset: String(offset) })
+        q.append("filter", "transactionType:{SALE}")
+        q.append("filter", `transactionDate:${range}`)
+        const r = await fetch(`https://apiz.ebay.com/sell/finances/v1/transaction?${q.toString()}`, {
+          cache: "no-store",
+          headers: { Authorization: `Bearer ${access}`, "X-EBAY-C-MARKETPLACE-ID": "EBAY_US" },
+        })
+        const j = await r.json()
+        if (!r.ok) {
+          fees.error = j?.errors?.[0]?.message || `Finances API ${r.status}`
+          break
+        }
+        for (const t of j.transactions ?? []) {
+          fees.entries++
+          if (t.totalFeeAmount?.currency === "USD" && t.orderId) {
+            feeByOrder.set(t.orderId, (feeByOrder.get(t.orderId) ?? 0) + num(t.totalFeeAmount.value))
+          }
+          for (const li of t.orderLineItems ?? []) {
+            let sum = 0
+            let ok = true
+            for (const f of li.marketplaceFees ?? []) {
+              if (f.amount?.currency !== "USD") ok = false
+              sum += num(f.amount?.value)
+            }
+            if (ok && li.lineItemId) feeByLine.set(String(li.lineItemId), sum)
+          }
+        }
+        if (!j.next) break
+      }
+
+      if (!fees.error) {
+        const { data: pending } = await supabase
+          .from("sales")
+          .select("id, line_item_id, order_id")
+          .eq("fee_estimated", true)
+        for (const p of pending ?? []) {
+          // line_item_id は「ItemID-TransactionID」。後ろ側が Finances の lineItemId
+          const tx = String(p.line_item_id).split("-").pop() ?? ""
+          let fee = feeByLine.get(tx) ?? feeByLine.get(p.line_item_id)
+          if (fee === undefined && p.order_id) fee = feeByOrder.get(p.order_id)
+          if (fee === undefined) continue
+          const { error } = await supabase
+            .from("sales")
+            .update({ ebay_fee_usd: Math.round(fee * 100) / 100, fee_estimated: false })
+            .eq("id", p.id)
+          if (!error) feeUpdated++
+        }
+      }
+    }
+  } catch (e) {
+    fees.error = (e as Error).message
+  }
 
   return NextResponse.json({
     ok: true,
