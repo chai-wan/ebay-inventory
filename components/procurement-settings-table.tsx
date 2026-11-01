@@ -28,7 +28,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useState } from "react"
-import { MoreHorizontal, Pencil, Trash2, RefreshCw, Play, Pause, ExternalLink } from "lucide-react"
+import { MoreHorizontal, Pencil, Trash2, RefreshCw, Play, Pause, ExternalLink, Hash } from "lucide-react"
 import type { ProcurementSetting } from "./procurement-settings-form"
 import type { SiteMaster } from "./site-master"
 import { extractEbayItemId } from "@/lib/utils"
@@ -41,6 +41,7 @@ interface ProcurementSettingsTableProps {
   onDelete: (id: string) => void
   onCheck: (id: string) => void
   onToggleStatus: (id: string) => void
+  onSetQuantity: (setting: ProcurementSetting) => void
 }
 
 function calcTotalCostJpy(setting: ProcurementSetting): number {
@@ -66,6 +67,7 @@ export function ProcurementSettingsTable({
   onDelete,
   onCheck,
   onToggleStatus,
+  onSetQuantity,
 }: ProcurementSettingsTableProps) {
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
@@ -251,6 +253,9 @@ export function ProcurementSettingsTable({
                         <div className="text-xs text-muted-foreground">
                           {formatCheckedAt(setting.mercariCheckedAt)}
                         </div>
+                        <div className="text-xs text-muted-foreground">
+                          eBay数量 {setting.ebayQuantity ?? 1}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell className="font-medium">
@@ -266,6 +271,10 @@ export function ProcurementSettingsTable({
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => onSetQuantity(setting)}>
+                            <Hash className="mr-2 h-4 w-4" />
+                            出品数を変える（再出品）
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => onCheck(setting.id)}>
                             <RefreshCw className="mr-2 h-4 w-4" />
                             今すぐチェック
@@ -348,7 +357,11 @@ export function ProcurementSettingsTable({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onCheck(setting.id)}>
+                      <DropdownMenuItem onClick={() => onSetQuantity(setting)}>
+                            <Hash className="mr-2 h-4 w-4" />
+                            出品数を変える（再出品）
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => onCheck(setting.id)}>
                         <RefreshCw className="mr-2 h-4 w-4" />
                         今すぐチェック
                       </DropdownMenuItem>
@@ -426,7 +439,7 @@ export function ProcurementSettingsTable({
 
                 {/* メルカリ最終チェック */}
                 <div className="text-xs text-muted-foreground">
-                  最終チェック: {formatCheckedAt(setting.mercariCheckedAt)}
+                  最終チェック: {formatCheckedAt(setting.mercariCheckedAt)} ・ eBay数量 {setting.ebayQuantity ?? 1}
                 </div>
 
                 {/* Price Info + Profit */}

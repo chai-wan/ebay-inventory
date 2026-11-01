@@ -93,6 +93,7 @@ export default function ProcurementSettingsPage() {
       customsDutyJpy: row.customs_duty_jpy,
       mercariStatus: row.mercari_status ?? null,
       mercariCheckedAt: row.mercari_checked_at ? new Date(row.mercari_checked_at) : null,
+      ebayQuantity: row.ebay_quantity ?? null,
     }))
     setSettings(mapped)
     setLoading(false)
@@ -166,6 +167,42 @@ export default function ProcurementSettingsPage() {
 
   const handleCheck = (id: string) => {
     alert(`ID: ${id} の商品ページをチェックしています...`)
+  }
+
+  // eBayの出品数を変える（0=在庫切れで出品を残す / 1以上=再出品して監視再開）
+  const handleSetQuantity = async (setting: ProcurementSetting) => {
+    const current = setting.ebayQuantity ?? 1
+    const input = window.prompt(
+      `「${setting.ebayProductName || "この商品"}」のeBay出品数（今: ${current}）\n0 = 在庫切れで出品を残す / 1以上 = 再出品して監視再開`,
+      current > 0 ? "0" : "1"
+    )
+    if (input === null) return
+    const qty = parseInt(input, 10)
+    if (!Number.isInteger(qty) || qty < 0) { alert("0以上の整数で入れてください"); return }
+    const res = await fetch("/api/ebay-quantity", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: setting.id, quantity: qty }),
+    })
+    const j = await res.json().catch(() => ({ ok: false, error: "通信エラー" }))
+    alert(j.ok ? `eBayの出品数を ${qty} にしました` : `変更できませんでした：${j.error}`)
+    await loadSettings()
+  }
+
+  // eBayの「在庫切れでも出品を残す」設定
+  const [oosEnabled, setOosEnabled] = useState<boolean | null>(null)
+  const [oosError, setOosError] = useState<string | null>(null)
+  useEffect(() => {
+    fetch("/api/ebay-oos")
+      .then((r) => r.json())
+      .then((j) => (j.ok ? setOosEnabled(j.enabled) : setOosError(j.error)))
+      .catch(() => setOosError("通信エラー"))
+  }, [])
+  const enableOos = async () => {
+    if (!window.confirm("eBayの販売設定「在庫切れでも出品を残す」をONにします。よろしいですか？")) return
+    const j = await fetch("/api/ebay-oos", { method: "POST" }).then((r) => r.json()).catch(() => ({ ok: false, error: "通信エラー" }))
+    if (j.ok) setOosEnabled(true)
+    else alert(`ONにできませんでした：${j.error}`)
   }
 
   const handleToggleStatus = async (id: string) => {
@@ -382,6 +419,18 @@ export default function ProcurementSettingsPage() {
               </div>
             )}
 
+            {oosEnabled === false && (
+              <div className="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm space-y-2">
+                <p>
+                  eBayの「在庫切れでも出品を残す」設定がOFFです。このままだと、売り切れで出品数を0にしたときに出品が終了します。
+                </p>
+                <Button size="sm" onClick={enableOos}>ONにする</Button>
+              </div>
+            )}
+            {oosError && (
+              <p className="mb-4 text-xs text-muted-foreground">eBayの在庫切れ設定を確認できませんでした：{oosError}</p>
+            )}
+
             {loading ? (
               <div className="rounded-lg border p-8 text-center text-muted-foreground">
                 読み込み中...
@@ -395,6 +444,7 @@ export default function ProcurementSettingsPage() {
                 onDelete={handleDelete}
                 onCheck={handleCheck}
                 onToggleStatus={handleToggleStatus}
+                onSetQuantity={handleSetQuantity}
               />
             )}
 

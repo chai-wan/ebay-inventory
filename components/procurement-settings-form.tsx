@@ -46,6 +46,7 @@ export interface ProcurementSetting {
   // メルカリ在庫監視（バッチが自動更新。フォームでは編集しない）
   mercariStatus?: string | null
   mercariCheckedAt?: Date | null
+  ebayQuantity?: number | null
 }
 
 interface ProcurementSettingsFormProps {
