@@ -243,7 +243,7 @@ export function ProcurementSettingsForm({
                 placeholder="https://jp.mercari.com/item/xxxxx"
                 value={productUrl}
                 onChange={(e) => setProductUrl(e.target.value)}
-                required
+                required={siteName !== "stock"}
               />
             </div>
 

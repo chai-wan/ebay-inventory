@@ -4,7 +4,7 @@
 
 ## 目的と今の使い方
 - eBay輸出（ストア：kaikaido-japan）の在庫と売上を管理する、オーナー専用のツール。有料ツール「eShip」の必要な部分を自作したもの。
-- 2026年11月時点：仕入れは止めていて、**手元の在庫を売り切る段階**。メルカリ在庫監視の対象は0件（商品の登録も0件。テスト行は2026-11-03に削除済み）。売上の記録と利益計算が主な用途。
+- 2026年11月時点：仕入れは止めていて、**手元の在庫を売り切る段階**。メルカリ在庫監視の対象は0件（テスト行は2026-11-03に削除済み。出品中の約27件を「手持ち在庫」として取り込む予定）。売上の記録と利益計算が主な用途。
 - 仕入れを再開するのは副業にあたるため、本人の会社への届出が先に必要。
 
 ## オーナーとの進め方
@@ -22,7 +22,7 @@
 | eBay | Trading API（XML、Auth'n'Authトークン）と、Finances API（OAuth） |
 
 ### タブ
-- **仕入れ設定**（`app/page.tsx`、`components/procurement-settings-*.tsx`）：商品の登録、在庫状態、eBay数量。「︙」→「出品数を変える（再出品）」で数量を変更。
+- **仕入れ設定**（`app/page.tsx`、`components/procurement-settings-*.tsx`）：商品の登録、在庫状態、eBay数量。「︙」→「出品数を変える（再出品）」で数量を変更。「eBayから出品中の商品を取り込む」で、出品中の商品を仕入れ先「手持ち在庫」（`site_name='stock'`、仕入URLなし、`mercari_status='hold'`、`status='stopped'`）として一括登録（ItemIDで重複除外）。仕入れ値を入れておくと、売れたときに売上へ自動で入る。
 - **売上**（`components/sales-page.tsx`）：毎朝5時ごろ（JST）に直近30日の注文を自動で取り込む。「eBayから取り込む」ボタンなら直近90日。最後の取り込み結果を画面上部に表示。「CSVで保存」で年ごとの確定申告用CSV（BOM付き）を出せる。年ごとの利益と、年20万円ラインまでの残りを表示。仕入れ値・国際送料は「直す」で手入力。
 - **サイトマスタ**：仕入れ先サイトの定義。
 
@@ -31,6 +31,7 @@
 |---|---|
 | `import-sales` | POST＝画面のボタン、GET＝Vercelの定時実行（`vercel.json` の crons、UTC 20:00。`CRON_SECRET` で確認し、`proxy.ts` もこれだけ通す）。GetOrders（読み取り）で注文を `sales` に追加（既存の行は上書きしない）。続けて Finances API で手数料の実額を取り、推定値の行を置き換える。結果は `app_tokens` の `last_import` に残す |
 | `ebay-quantity` | ReviseInventoryStatus で出品数を変える。0なら `mercari_status='hold'`、1以上なら `'active'`（監視再開） |
+| `import-listings` | GetMyeBaySelling（ActiveList、読み取り）で出品中の商品を取得し、未登録のものだけ `procurement_settings` に追加 |
 | `ebay-oos` | eBayの「在庫切れでも出品を残す」設定の確認（GET）とON（POST） |
 | `ebay-oauth/start`, `callback` | Finances API用のeBayログイン許可。長期トークンは暗号化して `app_tokens` に保存。kaikaido-japan 以外で許可されたら保存しない |
 | `login` | パスワードログイン（Cookie 180日） |

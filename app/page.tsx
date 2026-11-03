@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, Package, Search } from "lucide-react"
+import { Plus, Package, Search, Download } from "lucide-react"
 import { ProcurementSettingsForm, type ProcurementSetting } from "@/components/procurement-settings-form"
 import { ProcurementSettingsTable } from "@/components/procurement-settings-table"
 import { SiteMasterPage } from "@/components/site-master-page"
@@ -167,6 +167,22 @@ export default function ProcurementSettingsPage() {
 
   const handleCheck = (id: string) => {
     alert(`ID: ${id} の商品ページをチェックしています...`)
+  }
+
+  // eBayで出品中の商品を「手持ち在庫」として取り込む（読み取りのみ）
+  const [listingImporting, setListingImporting] = useState(false)
+  const handleImportListings = async () => {
+    setListingImporting(true)
+    const j = await fetch("/api/import-listings", { method: "POST" })
+      .then((r) => r.json())
+      .catch(() => ({ ok: false, error: "通信エラー" }))
+    setListingImporting(false)
+    alert(
+      j.ok
+        ? `eBayの出品中 ${j.found}件（うち在庫0が ${j.outOfStock}件）を確認し、新しく ${j.added}件を登録しました。\n各商品の「編集」で仕入れ値を入れてください。`
+        : `取り込めませんでした：${j.error}`
+    )
+    await loadSettings()
   }
 
   // eBayの出品数を変える（0=在庫切れで出品を残す / 1以上=再出品して監視再開）
@@ -367,6 +383,10 @@ export default function ProcurementSettingsPage() {
               <Button onClick={() => setIsFormOpen(true)} className="w-full" style={{backgroundColor:"#000", color:"#fff"}}>
                 <Plus className="mr-2 h-4 w-4" />
                 新規追加
+              </Button>
+              <Button variant="outline" className="w-full" onClick={handleImportListings} disabled={listingImporting}>
+                <Download className="mr-2 h-4 w-4" />
+                {listingImporting ? "取り込み中…" : "eBayから出品中の商品を取り込む"}
               </Button>
             </div>
 

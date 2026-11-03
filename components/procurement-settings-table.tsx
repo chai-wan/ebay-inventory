@@ -204,15 +204,19 @@ export function ProcurementSettingsTable({
                       })()}
                     </TableCell>
                     <TableCell>
-                      <a
-                        href={setting.productUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline inline-flex items-center gap-1 text-sm"
-                      >
-                        {truncateUrl(setting.productUrl)}
-                        <ExternalLink className="h-3 w-3 shrink-0" />
-                      </a>
+                      {setting.productUrl ? (
+                        <a
+                          href={setting.productUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline inline-flex items-center gap-1 text-sm"
+                        >
+                          {truncateUrl(setting.productUrl)}
+                          <ExternalLink className="h-3 w-3 shrink-0" />
+                        </a>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">-</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       {setting.ebayReferenceUrl ? (
@@ -411,15 +415,19 @@ export function ProcurementSettingsTable({
                   )}
                   <div className="flex items-center gap-2">
                     <span className="text-muted-foreground w-14 shrink-0">仕入</span>
-                    <a
-                      href={setting.productUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline inline-flex items-center gap-1 truncate"
-                    >
-                      {truncateUrl(setting.productUrl, 35)}
-                      <ExternalLink className="h-3 w-3 shrink-0" />
-                    </a>
+                    {setting.productUrl ? (
+                      <a
+                        href={setting.productUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline inline-flex items-center gap-1 truncate"
+                      >
+                        {truncateUrl(setting.productUrl, 35)}
+                        <ExternalLink className="h-3 w-3 shrink-0" />
+                      </a>
+                    ) : (
+                      <span className="text-muted-foreground">手持ち在庫</span>
+                    )}
                   </div>
                   {setting.ebayReferenceUrl && (
                     <div className="flex items-center gap-2">
