@@ -7,6 +7,16 @@ export async function proxy(req: NextRequest) {
   const password = process.env.APP_PASSWORD
   if (!password) return NextResponse.next()
 
+  // Vercelの定時実行（売上の自動取り込み）は CRON_SECRET で通す
+  const cronSecret = process.env.CRON_SECRET
+  if (
+    cronSecret &&
+    req.nextUrl.pathname === "/api/import-sales" &&
+    req.headers.get("authorization") === `Bearer ${cronSecret}`
+  ) {
+    return NextResponse.next()
+  }
+
   const cookie = req.cookies.get(AUTH_COOKIE)?.value ?? ""
   if (cookie && safeEqual(cookie, await sessionToken(password))) return NextResponse.next()
 

@@ -56,7 +56,7 @@ async function fetchRate(): Promise<number> {
   }
 }
 
-export async function POST(req: Request) {
+async function runImport(req: Request) {
   const token = process.env.EBAY_USER_TOKEN
   if (!token) {
     return NextResponse.json({ ok: false, error: "VercelにEBAY_USER_TOKENが設定されていません" }, { status: 500 })
@@ -220,4 +220,38 @@ export async function POST(req: Request) {
     feeEntries: fees.entries,
     feeError: fees.error,
   })
+}
+
+// 最後の取り込み結果を残す（画面で「自動取り込みが動いているか」を見るため）
+async function saveLastRun(res: Response, kind: "auto" | "manual") {
+  try {
+    const j = await res.clone().json()
+    await supabase.from("app_tokens").upsert({
+      name: "last_import",
+      value: JSON.stringify({ kind, at: new Date().toISOString(), ok: j.ok, found: j.found, added: j.added, feeUpdated: j.feeUpdated, error: j.error ?? j.feeError ?? null }),
+      updated_at: new Date().toISOString(),
+    })
+  } catch {
+    // 記録に失敗しても取り込み自体は成功扱い
+  }
+}
+
+// 画面の「eBayから取り込む」ボタン
+export async function POST(req: Request) {
+  const res = await runImport(req)
+  await saveLastRun(res, "manual")
+  return res
+}
+
+// Vercelの定時実行（毎朝。vercel.json の crons）。CRON_SECRET で本物のVercelからの呼び出しか確かめる
+export async function GET(req: Request) {
+  const secret = process.env.CRON_SECRET
+  if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
+    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 })
+  }
+  const url = new URL(req.url)
+  url.searchParams.set("days", "30")
+  const res = await runImport(new Request(url.toString(), { method: "POST" }))
+  await saveLastRun(res, "auto")
+  return res
 }

@@ -23,13 +23,13 @@
 
 ### タブ
 - **仕入れ設定**（`app/page.tsx`、`components/procurement-settings-*.tsx`）：商品の登録、在庫状態、eBay数量。「︙」→「出品数を変える（再出品）」で数量を変更。
-- **売上**（`components/sales-page.tsx`）：「eBayから取り込む」で直近90日の売れた注文を記録。年ごとの利益と、年20万円ラインまでの残りを表示。仕入れ値・国際送料は「直す」で手入力。
+- **売上**（`components/sales-page.tsx`）：毎朝5時ごろ（JST）に直近30日の注文を自動で取り込む。「eBayから取り込む」ボタンなら直近90日。最後の取り込み結果を画面上部に表示。「CSVで保存」で年ごとの確定申告用CSV（BOM付き）を出せる。年ごとの利益と、年20万円ラインまでの残りを表示。仕入れ値・国際送料は「直す」で手入力。
 - **サイトマスタ**：仕入れ先サイトの定義。
 
 ### API（`app/api/`）
 | パス | 役割 |
 |---|---|
-| `import-sales` | GetOrders（読み取り）で注文を `sales` に追加（既存の行は上書きしない）。続けて Finances API で手数料の実額を取り、推定値の行を置き換える |
+| `import-sales` | POST＝画面のボタン、GET＝Vercelの定時実行（`vercel.json` の crons、UTC 20:00。`CRON_SECRET` で確認し、`proxy.ts` もこれだけ通す）。GetOrders（読み取り）で注文を `sales` に追加（既存の行は上書きしない）。続けて Finances API で手数料の実額を取り、推定値の行を置き換える。結果は `app_tokens` の `last_import` に残す |
 | `ebay-quantity` | ReviseInventoryStatus で出品数を変える。0なら `mercari_status='hold'`、1以上なら `'active'`（監視再開） |
 | `ebay-oos` | eBayの「在庫切れでも出品を残す」設定の確認（GET）とON（POST） |
 | `ebay-oauth/start`, `callback` | Finances API用のeBayログイン許可。長期トークンは暗号化して `app_tokens` に保存。kaikaido-japan 以外で許可されたら保存しない |
@@ -49,7 +49,8 @@
 - どの表もRLSは「誰でも読み書き可」のポリシー。anonキーは公開済みなので、DBは実質だれでも読み書きできる（既知の弱点。塞ぐならRLSを認証付きにする）。
 
 ## Vercelの環境変数（値はVercelにだけある）
-`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `EBAY_USER_TOKEN`（Trading API用、2027年11月ごろ期限）, `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, `EBAY_RUNAME`, `TOKEN_ENC_KEY`（`app_tokens` の暗号鍵。変えると再連携が必要）, `APP_PASSWORD`。
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `EBAY_USER_TOKEN`（Trading API用、2027年11月ごろ期限）, `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, `EBAY_RUNAME`, `TOKEN_ENC_KEY`（`app_tokens` の暗号鍵。変えると再連携が必要）, `APP_PASSWORD`, `CRON_SECRET`（定時実行の合言葉）。
+Vercelは無料（Hobby）プラン。定時実行は1日1回・アカウント全体で2つまで、実行時刻は指定した1時間のどこかになる。
 環境変数を変えたら、空コミットのpushなどで再デプロイしないと反映されない。
 
 ## Pixel（Termux）側
@@ -73,4 +74,4 @@
 ## 残っていること
 - 売上3件（2026年8〜9月）の仕入れ値と国際送料が未入力。
 - 「今すぐチェック」メニューは見た目だけで、中身は未実装。
-- 今後の候補：ItemIDから商品情報を自動入力（GetItem）、送料の設定、CSVの入出力。
+- 今後の候補：出品中の在庫一覧をeBayから取得（売り切りの進み具合）、売れ残りの値下げ候補の表示、ItemIDから商品情報を自動入力（GetItem）、送料の設定。

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
-import { Download, Pencil, Receipt, Save, X } from "lucide-react"
+import { Download, FileDown, Pencil, Receipt, Save, X } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { calcSale, PAYOUT_FEE_RATE, TAX_FILING_LINE_JPY, type SaleRow } from "@/lib/sales"
 
@@ -35,8 +35,19 @@ export function SalesPage() {
     purchase_cost_jpy: "", shipping_cost_jpy: "", other_cost_jpy: "", exchange_rate: "", ebay_fee_usd: "",
   })
 
+  // 最後の取り込み（自動・手動）
+  const [lastRun, setLastRun] = useState<{ kind: string; at: string; ok: boolean; added?: number; error?: string | null } | null>(null)
+
   const load = async () => {
     setLoading(true)
+    supabase
+      .from("app_tokens")
+      .select("value")
+      .eq("name", "last_import")
+      .maybeSingle()
+      .then(({ data }) => {
+        try { setLastRun(data?.value ? JSON.parse(data.value) : null) } catch { setLastRun(null) }
+      })
     const { data, error } = await supabase.from("sales").select("*").order("sold_at", { ascending: false })
     if (error) setLoadError(error.message)
     else { setLoadError(null); setSales((data ?? []) as SaleRow[]) }
@@ -84,6 +95,39 @@ export function SalesPage() {
   )
   const linePct = Math.min(Math.max((totals.profit / TAX_FILING_LINE_JPY) * 100, 0), 100)
   const overLine = totals.profit > TAX_FILING_LINE_JPY
+
+  // 確定申告用：選んだ年の売上をCSVで保存（Excelで文字化けしないようBOM付き）
+  const exportCsv = () => {
+    const header = [
+      "販売日", "ItemID", "注文ID", "商品名", "数量", "売値(USD)", "送料収入(USD)", "eBay手数料(USD)", "手数料は推定",
+      "為替(円/USD)", "売上(円)", "受取手数料(USD)", "仕入れ値(円)", "国際送料(円)", "その他(円)", "利益(円)", "メモ",
+    ]
+    const esc = (v: unknown) => {
+      const t = v === null || v === undefined ? "" : String(v)
+      return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t
+    }
+    const rows = [...yearSales].reverse().map((s) => {
+      const c = calcSale(s)
+      return [
+        s.sold_at ? new Date(s.sold_at).toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo" }) : "",
+        s.item_id, s.order_id, s.title, s.quantity,
+        Number(s.sale_usd).toFixed(2), Number(s.shipping_income_usd).toFixed(2), Number(s.ebay_fee_usd).toFixed(2),
+        s.fee_estimated ? "はい" : "いいえ",
+        s.exchange_rate, c.grossJpy, c.payoutFeeUsd.toFixed(2),
+        s.purchase_cost_jpy, s.shipping_cost_jpy, s.other_cost_jpy, c.profitJpy, s.memo,
+      ]
+    })
+    const total = ["合計", "", "", "", "", "", "", "", "", "", totals.gross, "", "", "", "", totals.profit, ""]
+    const csv = "\uFEFF" + [header, ...rows, total].map((r) => r.map(esc).join(",")).join("\r\n")
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }))
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `ebay-sales-${year}.csv`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
 
   const startEdit = (s: SaleRow) => {
     setEditingId(s.id)
@@ -142,11 +186,24 @@ export function SalesPage() {
         </Button>
       </div>
 
-      <p className="text-xs text-muted-foreground -mt-3">
-        手数料の実額を取るには、最初に1回だけ{" "}
-        <a href="/api/ebay-oauth/start" className="underline">eBayと連携</a>
-        してください（あとから再連携しても大丈夫です）。
-      </p>
+      <div className="text-xs text-muted-foreground -mt-3 space-y-1">
+        <p>
+          毎朝5時ごろに自動で取り込みます。
+          {lastRun && (
+            <>
+              {" "}最後の取り込み：
+              {new Date(lastRun.at).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+              （{lastRun.kind === "auto" ? "自動" : "手動"}・
+              {lastRun.ok ? `${lastRun.added ?? 0}件追加` : `失敗：${lastRun.error ?? "不明"}`}）
+            </>
+          )}
+        </p>
+        <p>
+          手数料の実額が入らなくなったら、
+          <a href="/api/ebay-oauth/start" className="underline">eBayと再連携</a>
+          してください。
+        </p>
+      </div>
 
       {importMsg && <p className="text-sm rounded-md border bg-muted/40 px-3 py-2">{importMsg}</p>}
       {loadError && (
@@ -162,6 +219,10 @@ export function SalesPage() {
             {y}年
           </Button>
         ))}
+        <Button size="sm" variant="outline" className="gap-1 ml-auto" onClick={exportCsv} disabled={yearSales.length === 0}>
+          <FileDown className="h-4 w-4" />
+          {year}年をCSVで保存
+        </Button>
       </div>
 
       {/* 年間サマリー */}
