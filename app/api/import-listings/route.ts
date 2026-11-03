@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js"
 import { extractEbayItemId } from "@/lib/utils"
 import { tradingCall } from "@/lib/ebay-trading"
 
-// eBayで出品中の商品を読み取り、まだ登録されていないものを「手持ち在庫」として追加する。
+// eBayで出品中の商品を読み取り、まだ登録されていないものを「有在庫」として追加する。
 // 読み取りだけで、eBayの出品は変えない。在庫監視は「保留」（Pixelのチェック対象外）。
 export const dynamic = "force-dynamic"
 export const maxDuration = 60

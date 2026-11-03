@@ -382,7 +382,7 @@ export function ProcurementSettingsTable({
                         <ExternalLink className="h-3 w-3 shrink-0" />
                       </a>
                     ) : (
-                      <span className="text-muted-foreground">手持ち在庫</span>
+                      <span className="text-muted-foreground">有在庫</span>
                     )}
                   </div>
                   {setting.ebayReferenceUrl && (

@@ -169,7 +169,7 @@ export default function ProcurementSettingsPage() {
     alert(`ID: ${id} の商品ページをチェックしています...`)
   }
 
-  // eBayで出品中の商品を「手持ち在庫」として取り込む（読み取りのみ）
+  // eBayで出品中の商品を「有在庫」として取り込む（読み取りのみ）
   const [listingImporting, setListingImporting] = useState(false)
   const handleImportListings = async () => {
     setListingImporting(true)
