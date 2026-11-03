@@ -221,18 +221,6 @@ export default function ProcurementSettingsPage() {
     else alert(`ONにできませんでした：${j.error}`)
   }
 
-  const handleToggleStatus = async (id: string) => {
-    const setting = settings.find(s => s.id === id)
-    if (!setting) return
-    const newStatus = setting.status === "monitoring" ? "stopped" : "monitoring"
-    const { error } = await supabase
-      .from('procurement_settings')
-      .update({ status: newStatus })
-      .eq('id', id)
-    if (error) { console.error('ステータス更新エラー:', error); return }
-    await loadSettings()
-  }
-
   const handleFormClose = (open: boolean) => {
     if (!open) setEditingSetting(null)
     setIsFormOpen(open)
@@ -281,8 +269,8 @@ export default function ProcurementSettingsPage() {
     await loadSiteMasters()
   }
 
-  const monitoringCount = settings.filter((s) => s.status === "monitoring").length
-  const errorCount = settings.filter((s) => s.status === "error").length
+  const monitoringCount = settings.filter((s) => s.siteName !== "stock" && s.mercariStatus === "active").length
+  const stockCount = settings.filter((s) => s.siteName === "stock").length
   const totalPurchase = settings.reduce((sum, s) => {
     return sum + Math.round(s.purchasePrice * (1 - s.discountPercent / 100) - s.discountPoints)
   }, 0)
@@ -397,11 +385,11 @@ export default function ProcurementSettingsPage() {
               </div>
               <div className="rounded-lg border bg-card p-3 sm:p-4">
                 <div className="text-2xl sm:text-3xl font-bold text-emerald-600">{monitoringCount}</div>
-                <div className="text-xs sm:text-sm text-muted-foreground">監視中</div>
+                <div className="text-xs sm:text-sm text-muted-foreground">無在庫（監視中）</div>
               </div>
               <div className="rounded-lg border bg-card p-3 sm:p-4">
-                <div className="text-2xl sm:text-3xl font-bold text-destructive">{errorCount}</div>
-                <div className="text-xs sm:text-sm text-muted-foreground">エラー</div>
+                <div className="text-2xl sm:text-3xl font-bold">{stockCount}</div>
+                <div className="text-xs sm:text-sm text-muted-foreground">有在庫</div>
               </div>
               <div className="rounded-lg border bg-card p-3 sm:p-4">
                 <div className="text-lg sm:text-2xl font-bold">¥{totalPurchase.toLocaleString()}</div>
@@ -463,7 +451,6 @@ export default function ProcurementSettingsPage() {
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onCheck={handleCheck}
-                onToggleStatus={handleToggleStatus}
                 onSetQuantity={handleSetQuantity}
               />
             )}

@@ -20,7 +20,7 @@ export async function POST(req: Request) {
 
   const { data: row, error: readErr } = await supabase
     .from("procurement_settings")
-    .select("id, ebay_url")
+    .select("id, ebay_url, site_name")
     .eq("id", id)
     .single()
   if (readErr || !row) return NextResponse.json({ ok: false, error: "商品が見つかりません" }, { status: 404 })
@@ -36,7 +36,11 @@ export async function POST(req: Request) {
 
   const { error: upErr } = await supabase
     .from("procurement_settings")
-    .update({ ebay_quantity: qty, mercari_status: qty > 0 ? "active" : "hold" })
+    .update({
+      ebay_quantity: qty,
+      // 有在庫（手持ち）は仕入れ先の監視をしないので、常に hold のまま
+      mercari_status: row.site_name === "stock" ? "hold" : qty > 0 ? "active" : "hold",
+    })
     .eq("id", id)
   if (upErr) return NextResponse.json({ ok: false, error: upErr.message }, { status: 500 })
 

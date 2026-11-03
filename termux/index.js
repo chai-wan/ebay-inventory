@@ -84,6 +84,8 @@ async function fetchActiveListings() {
     .from("procurement_settings")
     .select("id, product_url, ebay_url, ebay_product_name, mercari_status")
     .not("product_url", "is", null)
+    .neq("product_url", "")
+    .neq("site_name", "stock")
     .eq("mercari_status", "active");
   if (error) throw new Error(`Supabase fetch error: ${error.message}`);
   return data || [];

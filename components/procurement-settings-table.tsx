@@ -28,7 +28,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useState } from "react"
-import { MoreHorizontal, Pencil, Trash2, RefreshCw, Play, Pause, ExternalLink, Hash } from "lucide-react"
+import { MoreHorizontal, Pencil, Trash2, RefreshCw, ExternalLink, Hash } from "lucide-react"
 import type { ProcurementSetting } from "./procurement-settings-form"
 import type { SiteMaster } from "./site-master"
 import { extractEbayItemId } from "@/lib/utils"
@@ -40,7 +40,6 @@ interface ProcurementSettingsTableProps {
   onEdit: (setting: ProcurementSetting) => void
   onDelete: (id: string) => void
   onCheck: (id: string) => void
-  onToggleStatus: (id: string) => void
   onSetQuantity: (setting: ProcurementSetting) => void
 }
 
@@ -66,7 +65,6 @@ export function ProcurementSettingsTable({
   onEdit,
   onDelete,
   onCheck,
-  onToggleStatus,
   onSetQuantity,
 }: ProcurementSettingsTableProps) {
   const [deleteId, setDeleteId] = useState<string | null>(null)
@@ -75,33 +73,20 @@ export function ProcurementSettingsTable({
     return siteMasters.find((s) => s.siteName === siteName)?.displayName ?? siteName
   }
 
-  const getStatusBadge = (status: ProcurementSetting["status"]) => {
-    switch (status) {
-      case "monitoring":
-        return (
-          <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/15">
-            監視中
-          </Badge>
-        )
-      case "stopped":
-        return <Badge variant="secondary">停止中</Badge>
-      case "error":
-        return <Badge variant="destructive">エラー</Badge>
-    }
-  }
-
-  const getMercariBadge = (s?: string | null) => {
+  // 無在庫＝仕入れ先（メルカリ等）を毎朝監視する商品、有在庫＝手元にある商品
+  const getMercariBadge = (s?: string | null, siteName?: string) => {
+    if (siteName === "stock") return <Badge variant="secondary">有在庫</Badge>
     switch (s) {
       case "active":
         return (
           <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/15">
-            在庫あり
+            無在庫（監視中）
           </Badge>
         )
       case "sold_out":
-        return <Badge variant="destructive">売り切れ</Badge>
+        return <Badge variant="destructive">仕入れ先で売り切れ</Badge>
       case "hold":
-        return <Badge variant="secondary">保留</Badge>
+        return <Badge variant="secondary">監視停止</Badge>
       default:
         return (
           <Badge variant="outline" className="text-muted-foreground">
@@ -155,7 +140,6 @@ export function ProcurementSettingsTable({
                 <TableHead className="w-[130px]">販売価格 / 利益</TableHead>
                 <TableHead className="w-[110px]">在庫</TableHead>
                 <TableHead className="w-[100px]">仕入元</TableHead>
-                <TableHead className="w-[80px]">ステータス</TableHead>
                 <TableHead className="w-[60px] text-right">操作</TableHead>
               </TableRow>
             </TableHeader>
@@ -253,7 +237,7 @@ export function ProcurementSettingsTable({
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1">
-                        {getMercariBadge(setting.mercariStatus)}
+                        {getMercariBadge(setting.mercariStatus, setting.siteName)}
                         <div className="text-xs text-muted-foreground">
                           {formatCheckedAt(setting.mercariCheckedAt)}
                         </div>
@@ -265,7 +249,6 @@ export function ProcurementSettingsTable({
                     <TableCell className="font-medium">
                       {getSiteDisplayName(setting.siteName)}
                     </TableCell>
-                    <TableCell>{getStatusBadge(setting.status)}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -282,19 +265,6 @@ export function ProcurementSettingsTable({
                           <DropdownMenuItem onClick={() => onCheck(setting.id)}>
                             <RefreshCw className="mr-2 h-4 w-4" />
                             今すぐチェック
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => onToggleStatus(setting.id)}>
-                            {setting.status === "monitoring" ? (
-                              <>
-                                <Pause className="mr-2 h-4 w-4" />
-                                監視を停止
-                              </>
-                            ) : (
-                              <>
-                                <Play className="mr-2 h-4 w-4" />
-                                監視を開始
-                              </>
-                            )}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => onEdit(setting)}>
@@ -335,8 +305,7 @@ export function ProcurementSettingsTable({
                   <div className="space-y-1 flex-1 min-w-0">
                     <div className="font-medium flex items-center gap-2 flex-wrap">
                       {getSiteDisplayName(setting.siteName)}
-                      {getMercariBadge(setting.mercariStatus)}
-                      {getStatusBadge(setting.status)}
+                      {getMercariBadge(setting.mercariStatus, setting.siteName)}
                     </div>
                     {setting.ebayUrl ? (
                       <a
@@ -368,19 +337,6 @@ export function ProcurementSettingsTable({
                           <DropdownMenuItem onClick={() => onCheck(setting.id)}>
                         <RefreshCw className="mr-2 h-4 w-4" />
                         今すぐチェック
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onToggleStatus(setting.id)}>
-                        {setting.status === "monitoring" ? (
-                          <>
-                            <Pause className="mr-2 h-4 w-4" />
-                            監視を停止
-                          </>
-                        ) : (
-                          <>
-                            <Play className="mr-2 h-4 w-4" />
-                            監視を開始
-                          </>
-                        )}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={() => onEdit(setting)}>

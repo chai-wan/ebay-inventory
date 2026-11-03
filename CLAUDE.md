@@ -43,7 +43,9 @@
 
 ## DB（Supabase）
 - `procurement_settings`：商品1件ごと。`product_url`＝メルカリURL、`ebay_url`（ItemIDはここから `extractEbayItemId` で抽出）、仕入れ値・割引、`mercari_status`（`active`監視中／`sold_out`売切／`hold`手動停止）、`mercari_checked_at`、`ebay_quantity`。
-  - `status`（`monitoring`/`stopped`/`error`）は画面用の別物。`mercari_status` と混同しない。
+  - 画面の在庫バッジ：`site_name='stock'` は「有在庫」、それ以外は `active`＝「無在庫（監視中）」、`sold_out`＝「仕入れ先で売り切れ」、`hold`＝「監視停止」。
+  - `status`（`monitoring`/`stopped`/`error`）は古い仕組みの名残りで、2026-11-03に画面から外した（列は残っているが、どこからも使っていない）。
+  - 有在庫の行は監視しない：`ebay-quantity` は `hold` のまま、Pixelの処理も `site_name='stock'` と仕入URLが空の行を除外する。
 - `site_masters`：サイト定義と在庫判定キーワード。
 - `sales`：売れた明細ごと。`line_item_id`（＝ItemID-TransactionID）が重複防止のキー。`fee_estimated=true` は手数料が推定値（13.25%＋$0.40）。
 - `app_tokens`：暗号化したeBayの長期トークン。
