@@ -41,6 +41,13 @@
 - 対象外：`/login`、`/api/login`、`/api/ebay-oauth/callback`、`/privacy`、静的ファイル。
 - `APP_PASSWORD` が未設定のときは保護しない（締め出し防止）。パスワードを変えたら、再デプロイが必要で、全端末がログアウトされる。
 
+### 送料と利益の計算（2026-11-03）
+- 発送は **eBay SpeedPAK Japan – Ship via FedEx**（Orange Connex。オーナーは「CPaSS」と呼ぶことがある）の International Connect Plus。
+- `lib/shipping.ts`：料金表（RATE GUIDE 2026、発効 2026-10-23）のアメリカ西部（Zone E）と東部・カナダ（Zone F）の基本料金を0.5〜68kgで持つ。課金重量＝実重量と寸法重量（L×W×H÷5000、cmは切り上げ）の大きい方を、表の次の段に切り上げ。燃料割増金は率で上乗せ。料金表が改定されたら表を差し替える。
+- `lib/pricing.ts`：利益＝(売値＋買い手送料)×(1−eBay手数料%)×(1−受取手数料%)×為替 − 売値×為替×関税% − 仕入れ − 送料 − その他。目標利益に必要な売値も計算。
+- 設定（eBay手数料%、受取%、燃料%、関税%、地域、目標利益）は「仕入れ設定」の「計算の設定」で変更し、`app_tokens` の `pricing_settings` に保存。既定値：手数料18%（これまでの実額から）、燃料30%と関税0%は仮。
+- 商品の登録・編集で重さとサイズを入れると、送料¥が自動で入り、利益と「目標利益に必要な売値」が出る。`procurement_settings` に `weight_kg`, `length_cm`, `width_cm`, `height_cm`。一覧の利益も同じ計算（以前はeBay手数料を引いていなかった）。
+
 ## DB（Supabase）
 - `procurement_settings`：商品1件ごと。`product_url`＝メルカリURL、`ebay_url`（ItemIDはここから `extractEbayItemId` で抽出）、仕入れ値・割引、`mercari_status`（`active`監視中／`sold_out`売切／`hold`手動停止）、`mercari_checked_at`、`ebay_quantity`。
   - 画面の在庫バッジ：`site_name='stock'` は「有在庫」、それ以外は `active`＝「無在庫（監視中）」、`sold_out`＝「仕入れ先で売り切れ」、`hold`＝「監視停止」。
@@ -77,4 +84,5 @@ Vercelは無料（Hobby）プラン。定時実行は1日1回・アカウント�
 ## 残っていること
 - 売上3件（2026年8〜9月）の仕入れ値と国際送料が未入力。
 - 「今すぐチェック」メニューは見た目だけで、中身は未実装。
-- 今後の候補：出品中の在庫一覧をeBayから取得（売り切りの進み具合）、売れ残りの値下げ候補の表示、ItemIDから商品情報を自動入力（GetItem）、送料の設定。
+- 無在庫のおすすめリスト（検討中）：eBayの売れた履歴はAPIで取れない（Finding API は2025-02に終了、Marketplace Insights は審査制）。アメリカ向けの最安値（Browse API）とメルカリの価格（Pixelで取得）、SpeedPAKの送料で利益を比べる案。
+- 今後の候補：売れ残りの値下げ候補の表示、ItemIDから商品情報を自動入力（GetItem）、送料の設定。

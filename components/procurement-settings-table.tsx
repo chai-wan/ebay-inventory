@@ -32,11 +32,13 @@ import { MoreHorizontal, Pencil, Trash2, RefreshCw, ExternalLink, Hash } from "l
 import type { ProcurementSetting } from "./procurement-settings-form"
 import type { SiteMaster } from "./site-master"
 import { extractEbayItemId } from "@/lib/utils"
+import { listingProfitJpy, type PricingSettings } from "@/lib/pricing"
 
 interface ProcurementSettingsTableProps {
   settings: ProcurementSetting[]
   siteMasters: SiteMaster[]
   exchangeRate: number
+  pricing: PricingSettings
   onEdit: (setting: ProcurementSetting) => void
   onDelete: (id: string) => void
   onCheck: (id: string) => void
@@ -52,16 +54,21 @@ function calcTotalCostJpy(setting: ProcurementSetting): number {
   )
 }
 
-function calcProfitJpy(setting: ProcurementSetting, exchangeRate: number): number {
-  const revenueJpy = (setting.sellingPriceUsd + setting.shippingCostUsd) * exchangeRate
-  const costJpy = calcTotalCostJpy(setting)
-  return Math.round(revenueJpy - costJpy)
+// eBay手数料・受取手数料・関税まで引いた利益（設定は「計算の設定」）
+function calcProfitJpy(setting: ProcurementSetting, exchangeRate: number, pricing: PricingSettings): number {
+  const purchaseJpy = Math.round(setting.purchasePrice * (1 - setting.discountPercent / 100) - setting.discountPoints)
+  return listingProfitJpy(setting.sellingPriceUsd, setting.shippingCostUsd, exchangeRate, {
+    purchaseJpy,
+    shippingJpy: setting.shippingCostJpy,
+    otherJpy: setting.customsDutyJpy,
+  }, pricing)
 }
 
 export function ProcurementSettingsTable({
   settings,
   siteMasters,
   exchangeRate,
+  pricing,
   onEdit,
   onDelete,
   onCheck,
@@ -109,7 +116,7 @@ export function ProcurementSettingsTable({
   }
 
   const getProfitDisplay = (setting: ProcurementSetting) => {
-    const profit = calcProfitJpy(setting, exchangeRate)
+    const profit = calcProfitJpy(setting, exchangeRate, pricing)
     const isPositive = profit >= 0
     return (
       <div className={`font-semibold text-sm ${isPositive ? "text-emerald-600" : "text-red-600"}`}>
@@ -297,7 +304,7 @@ export function ProcurementSettingsTable({
           </div>
         ) : (
           settings.map((setting) => {
-            const profit = calcProfitJpy(setting, exchangeRate)
+            const profit = calcProfitJpy(setting, exchangeRate, pricing)
             const isPositive = profit >= 0
             return (
               <div key={setting.id} className="rounded-lg border p-4 space-y-3">

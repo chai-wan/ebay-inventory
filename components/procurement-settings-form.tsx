@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { calcSpeedpakFedexJpy } from "@/lib/shipping"
+import { listingProfitJpy, requiredPriceUsd, type PricingSettings } from "@/lib/pricing"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -43,6 +45,12 @@ export interface ProcurementSetting {
   shippingCostUsd: number
   shippingCostJpy: number
   customsDutyJpy: number
+
+  // 梱包後の重さとサイズ（送料の自動計算用）
+  weightKg?: number
+  lengthCm?: number
+  widthCm?: number
+  heightCm?: number
   // メルカリ在庫監視（バッチが自動更新。フォームでは編集しない）
   mercariStatus?: string | null
   mercariCheckedAt?: Date | null
@@ -55,6 +63,8 @@ interface ProcurementSettingsFormProps {
   onSubmit: (setting: Omit<ProcurementSetting, "id" | "createdAt" | "status">) => void
   editingSetting?: ProcurementSetting | null
   siteMasters: SiteMaster[]  // ← サイトマスタを外から受け取る
+  exchangeRate: number
+  pricing: PricingSettings
 }
 
 const INTERVAL_OPTIONS = [
@@ -73,6 +83,8 @@ export function ProcurementSettingsForm({
   onSubmit,
   editingSetting,
   siteMasters,
+  exchangeRate,
+  pricing,
 }: ProcurementSettingsFormProps) {
   const [siteName, setSiteName] = useState("")
   const [productUrl, setProductUrl] = useState("")
@@ -90,11 +102,34 @@ export function ProcurementSettingsForm({
   const [shippingCostUsd, setShippingCostUsd] = useState(0)
   const [shippingCostJpy, setShippingCostJpy] = useState(0)
   const [customsDutyJpy, setCustomsDutyJpy] = useState(0)
+  const [weightKg, setWeightKg] = useState(0)
+  const [lengthCm, setLengthCm] = useState(0)
+  const [widthCm, setWidthCm] = useState(0)
+  const [heightCm, setHeightCm] = useState(0)
 
   // 仕入合計金額を計算
   const totalPurchasePrice = Math.round(
     purchasePrice * (1 - discountPercent / 100) - discountPoints
   )
+
+  // 送料の自動計算（SpeedPAK FedEx・アメリカ向け）
+  const ship = calcSpeedpakFedexJpy({
+    weightKg, lengthCm, widthCm, heightCm, zone: pricing.zone, fuelPct: pricing.fuelPct,
+  })
+  const applyShip = (next: { w?: number; l?: number; wd?: number; h?: number }) => {
+    const r = calcSpeedpakFedexJpy({
+      weightKg: next.w ?? weightKg,
+      lengthCm: next.l ?? lengthCm,
+      widthCm: next.wd ?? widthCm,
+      heightCm: next.h ?? heightCm,
+      zone: pricing.zone,
+      fuelPct: pricing.fuelPct,
+    })
+    if (r && !r.overMax) setShippingCostJpy(r.totalJpy)
+  }
+  const cost = { purchaseJpy: totalPurchasePrice, shippingJpy: shippingCostJpy, otherJpy: customsDutyJpy }
+  const profitNow = sellingPriceUsd > 0 ? listingProfitJpy(sellingPriceUsd, shippingCostUsd, exchangeRate, cost, pricing) : null
+  const needPrice = requiredPriceUsd(pricing.targetProfitJpy, shippingCostUsd, exchangeRate, cost, pricing)
 
   // 選択中サイトのキーワードをプレビュー表示
   const selectedSite = siteMasters.find((s) => s.siteName === siteName)
@@ -115,6 +150,10 @@ export function ProcurementSettingsForm({
       setShippingCostUsd(editingSetting.shippingCostUsd)
       setShippingCostJpy(editingSetting.shippingCostJpy)
       setCustomsDutyJpy(editingSetting.customsDutyJpy)
+      setWeightKg(editingSetting.weightKg ?? 0)
+      setLengthCm(editingSetting.lengthCm ?? 0)
+      setWidthCm(editingSetting.widthCm ?? 0)
+      setHeightCm(editingSetting.heightCm ?? 0)
     } else {
       resetForm()
     }
@@ -137,6 +176,10 @@ export function ProcurementSettingsForm({
       shippingCostUsd,
       shippingCostJpy,
       customsDutyJpy,
+      weightKg,
+      lengthCm,
+      widthCm,
+      heightCm,
     })
     resetForm()
   }
@@ -156,6 +199,10 @@ export function ProcurementSettingsForm({
     setShippingCostUsd(0)
     setShippingCostJpy(0)
     setCustomsDutyJpy(0)
+    setWeightKg(0)
+    setLengthCm(0)
+    setWidthCm(0)
+    setHeightCm(0)
   }
 
   return (
@@ -345,6 +392,31 @@ export function ProcurementSettingsForm({
             </div>
           </div>
 
+          {/* 重さ・サイズ（送料の自動計算） */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-muted-foreground border-b pb-2">梱包後の重さ・サイズ（送料を自動計算）</h3>
+            <div className="grid grid-cols-4 gap-2">
+              {([
+                ["重さkg", weightKg, (v: number) => { setWeightKg(v); applyShip({ w: v }) }, "0.1"],
+                ["長さcm", lengthCm, (v: number) => { setLengthCm(v); applyShip({ l: v }) }, "1"],
+                ["幅cm", widthCm, (v: number) => { setWidthCm(v); applyShip({ wd: v }) }, "1"],
+                ["高さcm", heightCm, (v: number) => { setHeightCm(v); applyShip({ h: v }) }, "1"],
+              ] as const).map(([label, val, set, step]) => (
+                <div key={label} className="space-y-1">
+                  <Label className="text-xs">{label}</Label>
+                  <Input type="number" inputMode="decimal" min="0" step={step} value={val || ""} onChange={(e) => set(Number(e.target.value))} />
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {ship
+                ? ship.overMax
+                  ? "68kgを超えるため、SpeedPAK FedExでは送れません。"
+                  : `SpeedPAK FedEx（アメリカ${pricing.zone === "usw" ? "西部" : "東部・カナダ"}）：課金重量 ${ship.billableKg}kg${ship.volumetricKg > Number(weightKg) ? `（寸法重量 ${ship.volumetricKg.toFixed(1)}kg）` : ""} → 基本 ¥${ship.baseJpy.toLocaleString()} ＋ 燃料 ¥${ship.fuelJpy.toLocaleString()} ＝ ¥${ship.totalJpy.toLocaleString()}（下の「送料¥」に自動で入ります）`
+                : "重さを入れると、送料を自動で計算して「送料¥」に入れます。"}
+            </p>
+          </div>
+
           {/* 販売価格 */}
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-muted-foreground border-b pb-2">販売価格</h3>
@@ -412,6 +484,29 @@ export function ProcurementSettingsForm({
                 </div>
               </div>
             </div>
+          </div>
+
+          <div className="rounded-md border bg-muted/40 p-3 text-sm space-y-1">
+            <p>
+              この売値での利益：
+              {profitNow === null ? "（価格$を入れると出ます）" : (
+                <span className={profitNow >= 0 ? "text-emerald-600 font-semibold" : "text-red-600 font-semibold"}>
+                  {profitNow >= 0 ? "+" : ""}¥{profitNow.toLocaleString()}
+                </span>
+              )}
+            </p>
+            <p>
+              利益 ¥{pricing.targetProfitJpy.toLocaleString()} に必要な売値：
+              <span className="font-semibold">{needPrice === null ? "計算できません" : `$${needPrice.toFixed(2)}`}</span>
+              {needPrice !== null && (
+                <button type="button" className="ml-2 text-xs text-blue-600 underline" onClick={() => setSellingPriceUsd(needPrice)}>
+                  この価格にする
+                </button>
+              )}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              eBay手数料{pricing.ebayFeePct}%・受取手数料{pricing.payoutFeePct}%・関税{pricing.dutyPct}%・為替¥{exchangeRate}で計算
+            </p>
           </div>
 
           {/* メモ */}

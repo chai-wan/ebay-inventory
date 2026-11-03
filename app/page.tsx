@@ -11,6 +11,8 @@ import { SalesPage } from "@/components/sales-page"
 import type { SiteMaster } from "@/components/site-master"
 import { supabase } from "@/lib/supabase"
 import { extractEbayItemId } from "@/lib/utils"
+import { PricingSettingsCard } from "@/components/pricing-settings"
+import { DEFAULT_PRICING, mergePricing, type PricingSettings } from "@/lib/pricing"
 
 type Tab = "procurement" | "sales" | "site-master"
 
@@ -91,6 +93,10 @@ export default function ProcurementSettingsPage() {
       shippingCostUsd: row.shipping_cost_usd,
       shippingCostJpy: row.shipping_cost_jpy,
       customsDutyJpy: row.customs_duty_jpy,
+      weightKg: Number(row.weight_kg) || 0,
+      lengthCm: Number(row.length_cm) || 0,
+      widthCm: Number(row.width_cm) || 0,
+      heightCm: Number(row.height_cm) || 0,
       mercariStatus: row.mercari_status ?? null,
       mercariCheckedAt: row.mercari_checked_at ? new Date(row.mercari_checked_at) : null,
       ebayQuantity: row.ebay_quantity ?? null,
@@ -118,6 +124,10 @@ export default function ProcurementSettingsPage() {
         shipping_cost_usd: newSetting.shippingCostUsd,
         shipping_cost_jpy: newSetting.shippingCostJpy,
         customs_duty_jpy: newSetting.customsDutyJpy,
+        weight_kg: newSetting.weightKg ?? 0,
+        length_cm: newSetting.lengthCm ?? 0,
+        width_cm: newSetting.widthCm ?? 0,
+        height_cm: newSetting.heightCm ?? 0,
       }])
     if (error) { console.error('追加エラー:', error); return }
     await loadSettings()
@@ -148,6 +158,10 @@ export default function ProcurementSettingsPage() {
         shipping_cost_usd: updatedData.shippingCostUsd,
         shipping_cost_jpy: updatedData.shippingCostJpy,
         customs_duty_jpy: updatedData.customsDutyJpy,
+        weight_kg: updatedData.weightKg ?? 0,
+        length_cm: updatedData.lengthCm ?? 0,
+        width_cm: updatedData.widthCm ?? 0,
+        height_cm: updatedData.heightCm ?? 0,
       })
       .eq('id', editingSetting.id)
     if (error) { console.error('更新エラー:', error); return }
@@ -167,6 +181,17 @@ export default function ProcurementSettingsPage() {
 
   const handleCheck = (id: string) => {
     alert(`ID: ${id} の商品ページをチェックしています...`)
+  }
+
+  // 利益計算の設定（手数料・燃料割増金・関税・目標利益）
+  const [pricing, setPricing] = useState<PricingSettings>(DEFAULT_PRICING)
+  useEffect(() => {
+    supabase.from("app_tokens").select("value").eq("name", "pricing_settings").maybeSingle()
+      .then(({ data }) => { try { if (data?.value) setPricing(mergePricing(JSON.parse(data.value))) } catch {} })
+  }, [])
+  const savePricing = async (next: PricingSettings) => {
+    setPricing(next)
+    await supabase.from("app_tokens").upsert({ name: "pricing_settings", value: JSON.stringify(next), updated_at: new Date().toISOString() })
   }
 
   // eBayで出品中の商品を「有在庫」として取り込む（読み取りのみ）
@@ -427,6 +452,8 @@ export default function ProcurementSettingsPage() {
               </div>
             )}
 
+            <PricingSettingsCard pricing={pricing} onSave={savePricing} />
+
             {oosEnabled === false && (
               <div className="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm space-y-2">
                 <p>
@@ -448,6 +475,7 @@ export default function ProcurementSettingsPage() {
                 settings={filteredSettings}
                 siteMasters={siteMasters}
                 exchangeRate={exchangeRate}
+                pricing={pricing}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onCheck={handleCheck}
@@ -461,6 +489,8 @@ export default function ProcurementSettingsPage() {
               onSubmit={editingSetting ? handleUpdate : handleAdd}
               editingSetting={editingSetting}
               siteMasters={siteMasters}
+              exchangeRate={exchangeRate}
+              pricing={pricing}
             />
           </>
         )}
