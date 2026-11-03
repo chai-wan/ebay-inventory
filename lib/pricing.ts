@@ -8,12 +8,18 @@ export interface PricingSettings {
   targetProfitJpy: number // 目標利益（必要な売値の計算に使う）
 }
 
-// 既定値。eBay手数料はこれまでの実額（約18%）から。燃料割増金と関税は仮の値なので、請求書で確認して直す
+// 既定値
+// - eBay手数料：これまでの実額（約18%）から
+// - 燃料割増金：仮の値（毎週変わる。請求書で分かれば直す）
+// - 関税：13%。2025-10-17から日本→米国（$2,500未満）はDDP必須で、関税はセラー負担。
+//   2026-07-24から日本原産品はMFN税率＋Section 301で合計12.5%（MFNが12.5%以上なら追加なし）。
+//   これに関税処理手数料（関税等の2.1%）を足して約13%。原産国が日本以外の商品は率が変わる。
+//   出典：ebay.co.jp/tariffs（2026-07-24更新）、ebay.co.jp/ddp-info、SpeedPAK料金表2026のDDPページ
 export const DEFAULT_PRICING: PricingSettings = {
   ebayFeePct: 18,
   payoutFeePct: 2,
   fuelPct: 30,
-  dutyPct: 0,
+  dutyPct: 13,
   zone: "use",
   targetProfitJpy: 2000,
 }

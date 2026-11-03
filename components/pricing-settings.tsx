@@ -81,7 +81,7 @@ export function PricingSettingsCard({ pricing, onSave }: { pricing: PricingSetti
           </div>
           <p className="text-xs text-muted-foreground">
             燃料割増金は毎週変わります。最近のSpeedPAKの請求書で「燃料割増金 ÷ 基本料金」を確認して入れてください。
-            関税は、買い手が払う設定なら0のままにします。
+            関税：日本→アメリカ（$2,500未満）はDDP発送が必須で、関税はセラー負担です。日本原産品は合計12.5%＋関税処理手数料で約13%（2026年7月時点）。原産国が日本以外の商品は率が変わります。
           </p>
           <div className="flex justify-end gap-2">
             <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>やめる</Button>
