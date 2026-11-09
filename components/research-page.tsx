@@ -33,6 +33,8 @@ export function ResearchPage({ exchangeRate, pricing }: { exchangeRate: number; 
   const [stats, setStats] = useState<{ items: number; checked: number; sold: number; sources: string } | null>(null)
   const [last, setLast] = useState<{ at: string; log: string[] } | null>(null)
   const [running, setRunning] = useState(false)
+  const [view, setView] = useState<"model" | "sold">("model")
+  const [soldRows, setSoldRows] = useState<{ item_id: string; title: string; price: number; quantity_sold: number; seller: string; listing_status: string; last_checked: string; model: string | null }[]>([])
 
   const load = async () => {
     setLoading(true)
@@ -43,6 +45,13 @@ export function ResearchPage({ exchangeRate, pricing }: { exchangeRate: number; 
       .order("monthly_est", { ascending: false })
       .limit(150)
     setRows((data ?? []) as Candidate[])
+    const { data: soldList } = await supabase
+      .from("research_items")
+      .select("item_id, title, price, quantity_sold, seller, listing_status, last_checked, model")
+      .gt("quantity_sold", 0)
+      .order("last_checked", { ascending: false })
+      .limit(150)
+    setSoldRows((soldList ?? []) as typeof soldRows)
     const [{ count: items }, { count: checked }, { count: sold }, { data: src }, { data: lastRow }] = await Promise.all([
       supabase.from("research_items").select("item_id", { count: "exact", head: true }),
       supabase.from("research_items").select("item_id", { count: "exact", head: true }).not("last_checked", "is", null),
@@ -94,6 +103,48 @@ export function ResearchPage({ exchangeRate, pricing }: { exchangeRate: number; 
         </Button>
       </div>
 
+      <div className="flex gap-2">
+        <Button size="sm" variant={view === "model" ? "default" : "outline"} onClick={() => setView("model")}>型番ごと</Button>
+        <Button size="sm" variant={view === "sold" ? "default" : "outline"} onClick={() => setView("sold")}>売れた出品（型番なしも）</Button>
+      </div>
+
+      {view === "sold" ? (
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">
+            1個以上売れていた出品を、新しく確認した順に表示します。型番がない商品（限定グッズなど）も含みます。仕入れ上限は送料¥{ASSUMED_SHIPPING_JPY.toLocaleString()}と仮定。
+          </p>
+          {soldRows.length === 0 ? (
+            <p className="text-sm text-muted-foreground">まだありません。売れた数の確認が進むと出てきます。</p>
+          ) : (
+            soldRows
+              .filter((r) => !q || r.title.toUpperCase().includes(q.toUpperCase()))
+              .map((r) => {
+                const cap = maxPurchaseJpy(Number(r.price), exchangeRate, ASSUMED_SHIPPING_JPY, pricing.targetProfitJpy, pricing)
+                const kw = encodeURIComponent(r.model ?? r.title.replace(/\b(from|japan|jpn|jp|used|new)\b/gi, "").slice(0, 40))
+                return (
+                  <div key={r.item_id} className="rounded-lg border bg-card p-3 text-sm space-y-1">
+                    <a href={`https://www.ebay.com/itm/${r.item_id}`} target="_blank" rel="noreferrer" className="underline line-clamp-2">
+                      {r.title}
+                    </a>
+                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                      <span>${Number(r.price).toFixed(0)}</span>
+                      <span>{r.quantity_sold}個売れた{r.listing_status !== "Active" ? "（終了）" : ""}</span>
+                      <span>{r.seller}</span>
+                      <Badge variant={cap > 0 ? "secondary" : "destructive"} className="text-[11px]">
+                        仕入れ上限 {cap > 0 ? yen(cap) : "利益が出ない"}
+                      </Badge>
+                      <a className="text-primary underline" target="_blank" rel="noreferrer" href={`https://jp.mercari.com/search?keyword=${kw}&status=sold_out`}>
+                        メルカリ 売り切れ
+                      </a>
+                    </div>
+                  </div>
+                )
+              })
+          )}
+        </div>
+      ) : null}
+
+      {view === "model" && (<>
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[180px]">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -169,6 +220,7 @@ export function ResearchPage({ exchangeRate, pricing }: { exchangeRate: number; 
           })}
         </div>
       )}
+      </>)}
     </div>
   )
 }

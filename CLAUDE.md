@@ -24,6 +24,7 @@
 ### タブ
 - **仕入れ設定**（`app/page.tsx`、`components/procurement-settings-*.tsx`）：商品の登録、在庫状態、eBay数量。「︙」→「出品数を変える（再出品）」で数量を変更。「eBayから出品中の商品を取り込む」で、出品中の商品を仕入れ先「有在庫」（表示名。2026-11-03に「手持ち在庫」から変更、`site_name='stock'`、仕入URLなし、`mercari_status='hold'`、`status='stopped'`）として一括登録（ItemIDで重複除外）。仕入れ値を入れておくと、売れたときに売上へ自動で入る。
 - **売上**（`components/sales-page.tsx`）：毎朝5時ごろ（JST）に直近30日の注文を自動で取り込む。「eBayから取り込む」ボタンなら直近90日。最後の取り込み結果を画面上部に表示。「CSVで保存」で年ごとの確定申告用CSV（BOM付き）を出せる。年ごとの利益と、年20万円ラインまでの残りを表示。仕入れ値・国際送料は「直す」で手入力。
+- **リサーチ**（`components/research-page.tsx`、2026-11-09〜）：自分用テラピーク。日本のセラーとカテゴリの出品（日本発送・$150〜400）を記録し、売れた数を調べて「型番ごと」（`research_candidates` ビュー、推定の月間販売数順）と「売れた出品（型番なしも）」で表示。仕入れ上限（目標利益を残せる仕入れ値、送料3,000円と仮定）と、メルカリ売り切れ・販売中、ヤフオク落札、eBay落札へのリンク付き。
 - **サイトマスタ**：仕入れ先サイトの定義。
 
 ### API（`app/api/`）
@@ -34,6 +35,8 @@
 | `import-listings` | GetMyeBaySelling（ActiveList、読み取り）で出品中の商品を取得し、未登録のものだけ `procurement_settings` に追加 |
 | `ebay-oos` | eBayの「在庫切れでも出品を残す」設定の確認（GET）とON（POST） |
 | `ebay-oauth/start`, `callback` | Finances API用のeBayログイン許可。長期トークンは暗号化して `app_tokens` に保存。kaikaido-japan 以外で許可されたら保存しない |
+| `research/step` | リサーチの1回分（`lib/research.ts`）。GET＝Supabaseのpg_cron（15分ごと、`research-step`、pg_netでCRON_SECRET付き。秘密はVaultの `research_cron_secret`）、POST＝画面の「今すぐ1回進める」。前半25秒で対象1つをBrowse APIで記録（続きは `cursor_offset`、セラーは最大5,000件、カテゴリは新しい順1,000件、一周は20時間ごと）、後半で最大40件をGetItemで確認（売れた数・出品日・状態）。セラーの一周で出てこなかった出品は `gone_since` を付けてGetItemで売れたか確かめる。1日のGetItemは約3,840回（上限5,000）。結果は `app_tokens` の `research_last` |
+| `research/test`, `research/browse`, `research/sellers` | 検証用の入口（2026-11-09）。GetSellerListは他人を指定しても自分の出品を返す（他のセラーには使えない）。GetItemは他のセラーの売れた数・出品日を返す |
 | `login` | パスワードログイン（Cookie 180日） |
 
 ### パスワード保護
@@ -56,7 +59,9 @@
   - 有在庫の行は監視しない：`ebay-quantity` は `hold` のまま、Pixelの処理も `site_name='stock'` と仕入URLが空の行を除外する。
 - `site_masters`：サイト定義と在庫判定キーワード。
 - `sales`：売れた明細ごと。`line_item_id`（＝ItemID-TransactionID）が重複防止のキー。`fee_estimated=true` は手数料が推定値（13.25%＋$0.40）。
-- `app_tokens`：暗号化したeBayの長期トークン。
+- `app_tokens`：暗号化したeBayの長期トークンのほか、`last_import`、`pricing_settings`、`research_last` など。
+- `research_sources`：リサーチの対象（2026-11-09時点：生きているセラー14人＝seller参考56人をBrowse APIで判定、＋カテゴリ 54968 ゲーム周辺機器・15230 フィルムカメラ・15052 ポータブルオーディオ。カテゴリは中古のみ）。
+- `research_items`：記録した出品（型番は `extractModel` でタイトルから抜き出し。セラー88.japan.sellerは一点物の限定グッズが多く、型番が取れるのは4%ほど）。
 - どの表もRLSは「誰でも読み書き可」のポリシー。anonキーは公開済みなので、DBは実質だれでも読み書きできる（既知の弱点。塞ぐならRLSを認証付きにする）。
 
 ## Vercelの環境変数（値はVercelにだけある）
@@ -87,5 +92,5 @@ Vercelは無料（Hobby）プラン。定時実行は1日1回・アカウント�
 - 実際のSpeedPAK（オーナーは「CPaSS」と呼ぶ）の請求は、関税込みで1件6,000〜9,000円の印象（オーナー談、主にオーディオ機器のころ）。請求の内訳（重さ・サイズ・基本料金・燃料・関税）で計算の答え合わせが必要。
 - 「今すぐチェック」メニューは見た目だけで、中身は未実装。
 - 無在庫のおすすめリスト（検討中）：eBayの売れた履歴はAPIで取れない（Finding API は2025-02に終了、Marketplace Insights は審査制）。アメリカ向けの最安値（Browse API）とメルカリの価格（Pixelで取得）、SpeedPAKの送料で利益を比べる案。
-- 目利きの自動化（オーナーは保留中。また提案してほしいと依頼あり、2026-11-05）：テラピーク（Seller Hubのプロダクトリサーチ）はAPIがなく、自動収集は規約上勧めない。代案は「自分用テラピーク」＝Browse APIで日本発送・中古・$80〜400の出品をカテゴリごとに毎日記録し、消えた出品をTrading APIのGetItemで確認して売れた型番・価格・日付を貯める（データは始めた日から。2〜4週間で使える量。API上限1日5,000回、Vercelの定時実行の残り1枠を使う）。手軽な代案は、オーナーがプロダクトリサーチの結果をスクショで送り、Claudeが型番を読み取って日本側の価格と比べる方式。調査で分かったこと：有名な商品（DOL-009、ゲームボーイプレーヤー本体、オリンパスμ-II）は日本の相場が追いついていて差がない。差が残るのは海外のマニアだけが価値を知っている商品（オーナーが以前見つけたDOL-015など）。
+- 目利きの自動化：2026-11-09に「リサーチ」タブとして実装済み（上記）。残り：メルカリの売り切れ価格をPixelで自動取得して利益順に並べる、対象カテゴリの見直し（オーナーは軽くて小さい中古・日本限定の未使用品が狙い。量販の新品は狙わない）。
 - 今後の候補：売れ残りの値下げ候補の表示、ItemIDから商品情報を自動入力（GetItem）、送料の設定。
