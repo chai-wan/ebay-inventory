@@ -8,13 +8,14 @@ import { ProcurementSettingsForm, type ProcurementSetting } from "@/components/p
 import { ProcurementSettingsTable } from "@/components/procurement-settings-table"
 import { SiteMasterPage } from "@/components/site-master-page"
 import { SalesPage } from "@/components/sales-page"
+import { ResearchPage } from "@/components/research-page"
 import type { SiteMaster } from "@/components/site-master"
 import { supabase } from "@/lib/supabase"
 import { extractEbayItemId } from "@/lib/utils"
 import { PricingSettingsCard } from "@/components/pricing-settings"
 import { DEFAULT_PRICING, mergePricing, type PricingSettings } from "@/lib/pricing"
 
-type Tab = "procurement" | "sales" | "site-master"
+type Tab = "procurement" | "sales" | "research" | "site-master"
 
 export default function ProcurementSettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("procurement")
@@ -344,6 +345,16 @@ export default function ProcurementSettingsPage() {
             売上
           </button>
           <button
+            onClick={() => setActiveTab("research")}
+            className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              activeTab === "research"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            リサーチ
+          </button>
+          <button
             onClick={() => setActiveTab("site-master")}
             className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               activeTab === "site-master"
@@ -356,6 +367,8 @@ export default function ProcurementSettingsPage() {
         </div>
 
         {activeTab === "sales" && <SalesPage />}
+
+        {activeTab === "research" && <ResearchPage exchangeRate={exchangeRate} pricing={pricing} />}
 
         {activeTab === "procurement" && (
           <>

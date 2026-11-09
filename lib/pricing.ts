@@ -71,3 +71,16 @@ export function requiredPriceUsd(
   const need = targetJpy + cost.purchaseJpy + cost.shippingJpy + cost.otherJpy - buyerShippingUsd * keep * rate
   return Math.max(0, Math.ceil((need / perDollar) * 100) / 100)
 }
+
+// 売値（ドル）で目標利益を残すための、仕入れ値の上限（円）
+export function maxPurchaseJpy(
+  priceUsd: number,
+  rate: number,
+  shippingJpy: number,
+  targetJpy: number,
+  s: PricingSettings
+): number {
+  const keep = (1 - s.ebayFeePct / 100) * (1 - s.payoutFeePct / 100)
+  const net = priceUsd * keep * rate - priceUsd * rate * (s.dutyPct / 100)
+  return Math.floor(net - shippingJpy - targetJpy)
+}
