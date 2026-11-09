@@ -49,7 +49,7 @@ async function sellerList(seller: string, from: Date, to: Date, maxPages = 3) {
 
 export async function GET(req: Request) {
   const url = new URL(req.url)
-  const item = url.searchParams.get("item")
+  const item = (url.searchParams.get("item") ?? "").replace(/\D/g, "") || null
   if (item) {
     const r = await tradingCall("GetItem", `<ItemID>${item}</ItemID><DetailLevel>ReturnAll</DetailLevel>`)
     if (!r.ok) return NextResponse.json({ ok: false, error: r.error })

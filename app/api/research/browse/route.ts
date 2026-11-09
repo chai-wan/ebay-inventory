@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { tradingCall } from "@/lib/ebay-trading"
 
 // 試作：Browse API（公式の検索）で、他のセラーの出品が取れるかを確かめる（読み取りのみ）
 // /api/research/browse?seller=asatan_japan&q=japan
@@ -37,11 +38,33 @@ export async function GET(req: Request) {
     })
     const j = await res.json()
     if (!res.ok) return NextResponse.json({ ok: false, status: res.status, error: j?.errors?.[0]?.message ?? j })
+    // 先頭3件を、Trading API の GetItem で個別に調べる（売れた数が取れるかの確認）
+    const firstIds: string[] = (j.itemSummaries ?? [])
+      .slice(0, 3)
+      .map((it: Record<string, unknown>) => String(it.legacyItemId ?? "").replace(/\D/g, ""))
+      .filter(Boolean)
+    const checks = []
+    for (const id of firstIds) {
+      const r = await tradingCall("GetItem", `<ItemID>${id}</ItemID><DetailLevel>ReturnAll</DetailLevel>`)
+      checks.push(
+        r.ok
+          ? {
+              itemId: id,
+              seller: r.$("Item > Seller > UserID").first().text(),
+              status: r.$("SellingStatus > ListingStatus").first().text(),
+              quantity: r.$("Item > Quantity").first().text(),
+              quantitySold: r.$("SellingStatus > QuantitySold").first().text(),
+              startTime: r.$("ListingDetails > StartTime").first().text(),
+            }
+          : { itemId: id, error: r.error }
+      )
+    }
     return NextResponse.json({
       ok: true,
       seller,
       q,
       total: j.total,
+      getItemChecks: checks,
       samples: (j.itemSummaries ?? []).slice(0, 15).map((it: Record<string, unknown>) => ({
         itemId: String(it.legacyItemId ?? it.itemId),
         title: it.title,
