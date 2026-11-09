@@ -10,7 +10,7 @@ export interface PricingSettings {
 
 // 既定値
 // - eBay手数料：これまでの実額（約18%）から
-// - 燃料割増金：仮の値（毎週変わる。請求書で分かれば直す）
+// - 燃料割増金：64%。2026年9月の請求書で、サーチャージ（燃料＋混雑時割増金）5,091円÷運送料金7,995円≒64%
 // - 関税：13%。2025-10-17から日本→米国（$2,500未満）はDDP必須で、関税はセラー負担。
 //   2026-07-24から日本原産品はMFN税率＋Section 301で合計12.5%（MFNが12.5%以上なら追加なし）。
 //   これに関税処理手数料（関税等の2.1%）を足して約13%。原産国が日本以外の商品は率が変わる。
@@ -18,7 +18,7 @@ export interface PricingSettings {
 export const DEFAULT_PRICING: PricingSettings = {
   ebayFeePct: 18,
   payoutFeePct: 2,
-  fuelPct: 30,
+  fuelPct: 64,
   dutyPct: 13,
   zone: "use",
   targetProfitJpy: 2000,
