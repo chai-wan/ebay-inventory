@@ -31,6 +31,8 @@ export interface ProcurementSetting {
   productUrl: string
   ebayUrl: string
   ebayReferenceUrl: string
+  // eBay検索語（一覧の「安い順」リンク用）
+  searchKeyword?: string
   ebayProductName: string
   monitoringInterval: string
   memo: string
@@ -90,6 +92,7 @@ export function ProcurementSettingsForm({
   const [productUrl, setProductUrl] = useState("")
   const [ebayUrl, setEbayUrl] = useState("")
   const [ebayReferenceUrl, setEbayReferenceUrl] = useState("")
+  const [searchKeyword, setSearchKeyword] = useState("")
   const [ebayProductName, setEbayProductName] = useState("")
   const [monitoringInterval, setMonitoringInterval] = useState("30")
   const [memo, setMemo] = useState("")
@@ -140,6 +143,7 @@ export function ProcurementSettingsForm({
       setProductUrl(editingSetting.productUrl)
       setEbayUrl(editingSetting.ebayUrl)
       setEbayReferenceUrl(editingSetting.ebayReferenceUrl)
+      setSearchKeyword(editingSetting.searchKeyword ?? "")
       setEbayProductName(editingSetting.ebayProductName)
       setMonitoringInterval(editingSetting.monitoringInterval)
       setMemo(editingSetting.memo)
@@ -166,6 +170,7 @@ export function ProcurementSettingsForm({
       productUrl,
       ebayUrl,
       ebayReferenceUrl,
+      searchKeyword,
       ebayProductName,
       monitoringInterval,
       memo,
@@ -189,6 +194,7 @@ export function ProcurementSettingsForm({
     setProductUrl("")
     setEbayUrl("")
     setEbayReferenceUrl("")
+    setSearchKeyword("")
     setEbayProductName("")
     setMonitoringInterval("30")
     setMemo("")
@@ -328,6 +334,17 @@ export function ProcurementSettingsForm({
                 onChange={(e) => setEbayReferenceUrl(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">参考にしたeBay商品ページのURLを入力（任意）</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="searchKeyword">eBay検索語</Label>
+              <Input
+                id="searchKeyword"
+                placeholder="例：TASCAM DR-44WL"
+                value={searchKeyword}
+                onChange={(e) => setSearchKeyword(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">一覧の「安い順」リンクに使う言葉（ブランド＋型番が目安）</p>
             </div>
           </div>
 

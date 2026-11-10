@@ -53,7 +53,7 @@
 - 商品の登録・編集で重さとサイズを入れると、送料¥が自動で入り、利益と「目標利益に必要な売値」が出る。`procurement_settings` に `weight_kg`, `length_cm`, `width_cm`, `height_cm`。一覧の利益も同じ計算（以前はeBay手数料を引いていなかった）。
 
 ## DB（Supabase）
-- `procurement_settings`：商品1件ごと。`product_url`＝メルカリURL、`ebay_url`（ItemIDはここから `extractEbayItemId` で抽出）、仕入れ値・割引、`mercari_status`（`active`監視中／`sold_out`売切／`hold`手動停止）、`mercari_checked_at`、`ebay_quantity`。
+- `procurement_settings`：商品1件ごと。`product_url`＝メルカリURL、`ebay_url`（ItemIDはここから `extractEbayItemId` で抽出）、仕入れ値・割引、`mercari_status`（`active`監視中／`sold_out`売切／`hold`手動停止）、`mercari_checked_at`、`ebay_quantity`、`search_keyword`（一覧の「安い順」リンク＝`https://www.ebay.com/sch/i.html?_nkw=検索語&_sop=15` 用。2026-11-10に27件をClaudeが作成。取り込み時は先頭の語＋型番で自動、型番が取れなければ空）。
   - 画面の在庫バッジ：`site_name='stock'` は「有在庫」、それ以外は `active`＝「無在庫（監視中）」、`sold_out`＝「仕入れ先で売り切れ」、`hold`＝「監視停止」。
   - `status`（`monitoring`/`stopped`/`error`）は古い仕組みの名残りで、2026-11-03に画面から外した（列は残っているが、どこからも使っていない）。
   - 有在庫の行は監視しない：`ebay-quantity` は `hold` のまま、Pixelの処理も `site_name='stock'` と仕入URLが空の行を除外する。

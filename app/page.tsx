@@ -82,6 +82,7 @@ export default function ProcurementSettingsPage() {
       productUrl: row.product_url,
       ebayUrl: row.ebay_url,
       ebayReferenceUrl: row.ebay_reference_url,
+      searchKeyword: row.search_keyword ?? '',
       ebayProductName: row.ebay_product_name,
       monitoringInterval: row.monitoring_interval,
       memo: row.memo,
@@ -114,6 +115,7 @@ export default function ProcurementSettingsPage() {
         product_url: newSetting.productUrl,
         ebay_url: newSetting.ebayUrl,
         ebay_reference_url: newSetting.ebayReferenceUrl,
+        search_keyword: newSetting.searchKeyword ?? '',
         ebay_product_name: newSetting.ebayProductName,
         monitoring_interval: newSetting.monitoringInterval,
         memo: newSetting.memo,
@@ -149,6 +151,7 @@ export default function ProcurementSettingsPage() {
         product_url: updatedData.productUrl,
         ebay_url: updatedData.ebayUrl,
         ebay_reference_url: updatedData.ebayReferenceUrl,
+        search_keyword: updatedData.searchKeyword ?? '',
         ebay_product_name: updatedData.ebayProductName,
         monitoring_interval: updatedData.monitoringInterval,
         memo: updatedData.memo,
@@ -313,6 +316,7 @@ export default function ProcurementSettingsPage() {
           s.productUrl,
           s.ebayUrl,
           s.ebayReferenceUrl,
+          s.searchKeyword,
         ]
           .filter(Boolean)
           .some((v) => v!.toLowerCase().includes(q))

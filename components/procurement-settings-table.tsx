@@ -137,6 +137,34 @@ export function ProcurementSettingsTable({
     )
   }
 
+  const cheapestUrl = (kw?: string) =>
+    kw && kw.trim()
+      ? `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(kw.trim())}&_sop=15`
+      : ""
+
+  const refLinks = (setting: ProcurementSetting, size: string) => {
+    const cheap = cheapestUrl(setting.searchKeyword)
+    if (!setting.ebayReferenceUrl && !cheap) return null
+    return (
+      <span className={`inline-flex flex-wrap items-center gap-x-3 gap-y-1 ${size}`}>
+        {cheap && (
+          <a href={cheap} target="_blank" rel="noopener noreferrer"
+            className="text-orange-600 hover:underline inline-flex items-center gap-1">
+            安い順
+            <ExternalLink className="h-3 w-3 shrink-0" />
+          </a>
+        )}
+        {setting.ebayReferenceUrl && (
+          <a href={setting.ebayReferenceUrl} target="_blank" rel="noopener noreferrer"
+            className="text-orange-600 hover:underline inline-flex items-center gap-1">
+            参考URL
+            <ExternalLink className="h-3 w-3 shrink-0" />
+          </a>
+        )}
+      </span>
+    )
+  }
+
   const truncateUrl = (url: string, maxLength = 30) => {
     if (!url) return "-"
     if (url.length <= maxLength) return url
@@ -222,17 +250,7 @@ export function ProcurementSettingsTable({
                       )}
                     </TableCell>
                     <TableCell>
-                      {setting.ebayReferenceUrl ? (
-                        <a
-                          href={setting.ebayReferenceUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-orange-600 hover:underline inline-flex items-center gap-1 text-sm"
-                        >
-                          参考URL
-                          <ExternalLink className="h-3 w-3 shrink-0" />
-                        </a>
-                      ) : (
+                      {refLinks(setting, "text-sm") ?? (
                         <span className="text-muted-foreground text-sm">-</span>
                       )}
                     </TableCell>
@@ -406,17 +424,7 @@ export function ProcurementSettingsTable({
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-muted-foreground w-14 shrink-0">参考</span>
-                    {setting.ebayReferenceUrl ? (
-                      <a
-                        href={setting.ebayReferenceUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-orange-600 hover:underline inline-flex items-center gap-1"
-                      >
-                        参考URL
-                        <ExternalLink className="h-3 w-3 shrink-0" />
-                      </a>
-                    ) : (
+                    {refLinks(setting, "") ?? (
                       <button
                         type="button"
                         onClick={() => onEdit(setting)}
