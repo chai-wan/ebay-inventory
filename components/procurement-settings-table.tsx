@@ -125,6 +125,18 @@ export function ProcurementSettingsTable({
     )
   }
 
+  const quantityBadge = (q: number | null | undefined) => {
+    const n = q ?? 1
+    return (
+      <span className="inline-flex items-center gap-1.5">
+        <span className="text-muted-foreground">eBay数量</span>
+        <span className={`rounded px-1.5 py-0.5 font-bold tabular-nums ${n === 0 ? "bg-red-500/10 text-red-700" : "bg-emerald-500/10 text-emerald-700"}`}>
+          {n}
+        </span>
+      </span>
+    )
+  }
+
   const truncateUrl = (url: string, maxLength = 30) => {
     if (!url) return "-"
     if (url.length <= maxLength) return url
@@ -217,7 +229,7 @@ export function ProcurementSettingsTable({
                           rel="noopener noreferrer"
                           className="text-orange-600 hover:underline inline-flex items-center gap-1 text-sm"
                         >
-                          {truncateUrl(setting.ebayReferenceUrl, 25)}
+                          参考URL
                           <ExternalLink className="h-3 w-3 shrink-0" />
                         </a>
                       ) : (
@@ -248,8 +260,8 @@ export function ProcurementSettingsTable({
                         <div className="text-xs text-muted-foreground">
                           {formatCheckedAt(setting.mercariCheckedAt)}
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          eBay数量 {setting.ebayQuantity ?? 1}
+                        <div className="text-sm">
+                          {quantityBadge(setting.ebayQuantity)}
                         </div>
                       </div>
                     </TableCell>
@@ -392,25 +404,36 @@ export function ProcurementSettingsTable({
                       <span className="text-muted-foreground">有在庫</span>
                     )}
                   </div>
-                  {setting.ebayReferenceUrl && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground w-14 shrink-0">参考</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground w-14 shrink-0">参考</span>
+                    {setting.ebayReferenceUrl ? (
                       <a
                         href={setting.ebayReferenceUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-orange-600 hover:underline inline-flex items-center gap-1 truncate"
+                        className="text-orange-600 hover:underline inline-flex items-center gap-1"
                       >
-                        {truncateUrl(setting.ebayReferenceUrl, 35)}
+                        参考URL
                         <ExternalLink className="h-3 w-3 shrink-0" />
                       </a>
-                    </div>
-                  )}
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => onEdit(setting)}
+                        className="text-muted-foreground underline-offset-2 hover:underline"
+                      >
+                        未設定（タップで入力）
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* メルカリ最終チェック */}
-                <div className="text-xs text-muted-foreground">
-                  最終チェック: {formatCheckedAt(setting.mercariCheckedAt)} ・ eBay数量 {setting.ebayQuantity ?? 1}
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    最終チェック: {formatCheckedAt(setting.mercariCheckedAt)}
+                  </span>
+                  <span className="text-sm">{quantityBadge(setting.ebayQuantity)}</span>
                 </div>
 
                 {/* Price Info + Profit */}
