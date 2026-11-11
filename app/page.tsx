@@ -9,13 +9,14 @@ import { ProcurementSettingsTable } from "@/components/procurement-settings-tabl
 import { SiteMasterPage } from "@/components/site-master-page"
 import { SalesPage } from "@/components/sales-page"
 import { ResearchPage } from "@/components/research-page"
+import { LedgerPage } from "@/components/ledger-page"
 import type { SiteMaster } from "@/components/site-master"
 import { supabase } from "@/lib/supabase"
 import { extractEbayItemId } from "@/lib/utils"
 import { PricingSettingsCard } from "@/components/pricing-settings"
 import { DEFAULT_PRICING, mergePricing, type PricingSettings } from "@/lib/pricing"
 
-type Tab = "procurement" | "sales" | "research" | "site-master"
+type Tab = "procurement" | "sales" | "research" | "ledger" | "site-master"
 
 export default function ProcurementSettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("procurement")
@@ -337,7 +338,7 @@ export default function ProcurementSettingsPage() {
         <div className="flex gap-1 mb-6 bg-muted/50 rounded-lg p-1 w-full sm:w-auto sm:inline-flex">
           <button
             onClick={() => setActiveTab("procurement")}
-            className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`flex-1 sm:flex-none px-1.5 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium whitespace-nowrap transition-colors ${
               activeTab === "procurement"
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
@@ -347,7 +348,7 @@ export default function ProcurementSettingsPage() {
           </button>
           <button
             onClick={() => setActiveTab("sales")}
-            className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`flex-1 sm:flex-none px-1.5 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium whitespace-nowrap transition-colors ${
               activeTab === "sales"
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
@@ -357,7 +358,7 @@ export default function ProcurementSettingsPage() {
           </button>
           <button
             onClick={() => setActiveTab("research")}
-            className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`flex-1 sm:flex-none px-1.5 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium whitespace-nowrap transition-colors ${
               activeTab === "research"
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
@@ -366,8 +367,18 @@ export default function ProcurementSettingsPage() {
             リサーチ
           </button>
           <button
+            onClick={() => setActiveTab("ledger")}
+            className={`flex-1 sm:flex-none px-1.5 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium whitespace-nowrap transition-colors ${
+              activeTab === "ledger"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            台帳
+          </button>
+          <button
             onClick={() => setActiveTab("site-master")}
-            className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`flex-1 sm:flex-none px-1.5 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium whitespace-nowrap transition-colors ${
               activeTab === "site-master"
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
@@ -380,6 +391,8 @@ export default function ProcurementSettingsPage() {
         {activeTab === "sales" && <SalesPage />}
 
         {activeTab === "research" && <ResearchPage exchangeRate={exchangeRate} pricing={pricing} />}
+
+        {activeTab === "ledger" && <LedgerPage />}
 
         {activeTab === "procurement" && (
           <>

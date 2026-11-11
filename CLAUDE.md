@@ -62,6 +62,7 @@
 - `app_tokens`：暗号化したeBayの長期トークンのほか、`last_import`、`pricing_settings`、`research_last` など。
 - `research_sources`：リサーチの対象（2026-11-09時点：生きているセラー14人＝seller参考56人をBrowse APIで判定、＋カテゴリ 54968 ゲーム周辺機器・15230 フィルムカメラ・15052 ポータブルオーディオ。カテゴリは中古のみ）。
 - `research_items`：記録した出品（型番は `extractModel` でタイトルから抜き出し。セラー88.japan.sellerは一点物の限定グッズが多く、型番が取れるのは4%ほど）。
+- `kobutsu_ledger`：古物台帳（2026-11-11〜）。オーナーのExcel「古物台帳」シートと同じ25列（受入れ15・払出し10、定義は `lib/ledger.ts`）。Excelの228件を `origin='excel'`（`excel_row`＝元の行番号）で取り込み済み。**行は削除できない**（DELETE/TRUNCATEはトリガーで例外、RLSも削除ポリシーなし）。自動連携：`procurement_settings` に行が追加されると受入れ1行（`origin='auto'`、メモが「eBayから取り込み」の行と、仕入れ値0かつ仕入URLなしの行は除外）。`sales` に行が追加されると、同じItemIDで払出しのない一番古い受入れ行に売却を記入（`sale_line_item_id`）。画面は「台帳」タブ（`components/ledger-page.tsx`、直す・行を追加・Excelで保存）。Excel出力は `app/api/ledger/export`（exceljs）。
 - **DBの鍵（2026-11-11〜）**：どの表もRLSは `gate_all`＝`db_gate_ok()` が真のときだけ読み書き可。`db_gate_ok()` はリクエストの `x-db-gate` ヘッダーをVaultの `db_gate_secret` と照合する（値はVercelの `DB_GATE_SECRET` と同じ）。画面（`lib/supabase.ts`）は自サイトの `/api/sb/rest/v1/...`（`app/api/sb/[...path]/route.ts`、ログイン必須）経由で、サーバー側がヘッダーを付けて中継。APIや定時処理は `lib/supabase-server.ts` の `serverSupabase()`。合言葉なしのanonキーでは0件・書き込み不可。新しい表を作るときも同じ `gate_all` ポリシーを付けること。
 - Termuxで在庫監視を再開するときは、Pixelの `~/ebay-checker/.env` に `DB_GATE_SECRET=（Vercelと同じ値）` を足す必要がある（ないとDBが0件に見える）。
 
