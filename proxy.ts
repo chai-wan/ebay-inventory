@@ -17,6 +17,16 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next()
   }
 
+  // 月1の台帳バックアップ（GitHubの非公開リポジトリ ebay-ledger-backup のActionsから）は LEDGER_BACKUP_SECRET で通す
+  const backupSecret = process.env.LEDGER_BACKUP_SECRET
+  if (
+    backupSecret &&
+    req.nextUrl.pathname === "/api/ledger/export" &&
+    req.headers.get("authorization") === `Bearer ${backupSecret}`
+  ) {
+    return NextResponse.next()
+  }
+
   const cookie = req.cookies.get(AUTH_COOKIE)?.value ?? ""
   if (cookie && safeEqual(cookie, await sessionToken(password))) return NextResponse.next()
 
