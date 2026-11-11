@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { extractEbayItemId } from "@/lib/utils"
 import { tradingCall } from "@/lib/ebay-trading"
-import { extractModel } from "@/lib/research"
+import { keywordFromTitle } from "@/lib/model"
 
 // eBayで出品中の商品を読み取り、まだ登録されていないものを「有在庫」として追加する。
 // 読み取りだけで、eBayの出品は変えない。在庫監視は「保留」（Pixelのチェック対象外）。
@@ -13,14 +13,6 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
-
-// 一覧の「安い順」リンク用の検索語：先頭の語（ブランド）＋型番。型番が取れなければ空（あとで手入力）
-const keywordFromTitle = (title: string) => {
-  const model = extractModel(title)
-  if (!model) return ""
-  const brand = title.trim().split(/\s+/)[0] ?? ""
-  return brand && brand.toUpperCase() !== model ? `${brand} ${model}` : model
-}
 
 const num = (v: string) => {
   const n = parseFloat(v)

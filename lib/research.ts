@@ -21,22 +21,8 @@ const PAGE = 200
 const GETITEM_PER_STEP = 40 // 15分ごと×40件＝1日約3,840件（GetItemの上限は1日5,000件）
 const RECHECK_DAYS = 3 // 出品中のものを調べ直す間隔
 
-// タイトルから型番らしい文字列を抜き出す（例：DOL-015, ICF-7600DA, MZ-RH1）
-const SKIP = /^(VOL|NO|EP|LP|CD|DVD|BD|NTSC|PAL|SIZE|SET|VER|USB|AC|DC|MK|MKII|LOT|PCS|PC|CM|MM|KG|JP|JPN|ITEM|TYPE|SERIES|BOX)[-]?\d*$/
-export function extractModel(title: string): string | null {
-  const t = title.toUpperCase().replace(/[‐－―]/g, "-")
-  const found = t.match(/\b[A-Z]{1,6}-?[A-Z]{0,3}\d{1,5}[A-Z0-9]{0,4}(?:-[A-Z0-9]{1,4})?\b/g) ?? []
-  const cands = found.filter((m) => {
-    if (SKIP.test(m)) return false
-    if (m.includes("-")) return true
-    const letters = (m.match(/^[A-Z]+/) ?? [""])[0].length
-    const digits = (m.match(/\d/g) ?? []).length
-    // 「F2」「F1」のような絞り値などを除く：ハイフンなしなら、文字2つ以上か数字3つ以上
-    return m.length >= 3 && (letters >= 2 || digits >= 3)
-  })
-  if (cands.length === 0) return null
-  return cands.sort((a, b) => b.length - a.length)[0]
-}
+export { extractModel } from "@/lib/model"
+import { extractModel } from "@/lib/model"
 
 interface Source {
   id: number

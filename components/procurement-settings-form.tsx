@@ -1,5 +1,6 @@
 "use client"
 
+import { keywordFromTitle } from "@/lib/model"
 import { useState, useEffect } from "react"
 import { calcSpeedpakFedexJpy } from "@/lib/shipping"
 import { listingProfitJpy, requiredPriceUsd, type PricingSettings } from "@/lib/pricing"
@@ -307,7 +308,14 @@ export function ProcurementSettingsForm({
                 type="text"
                 placeholder="Toy Record Maker Kit Gakken Adult Science Magazine Book from Japan"
                 value={ebayProductName}
-                onChange={(e) => setEbayProductName(e.target.value)}
+                onChange={(e) => {
+                  const next = e.target.value
+                  // 検索語が空か、前の商品名から自動で入れたままなら、新しい商品名から作り直す
+                  if (!searchKeyword.trim() || searchKeyword === keywordFromTitle(ebayProductName)) {
+                    setSearchKeyword(keywordFromTitle(next))
+                  }
+                  setEbayProductName(next)
+                }}
               />
               <p className="text-xs text-muted-foreground">eBayに登録した商品名を入力</p>
             </div>
@@ -344,7 +352,7 @@ export function ProcurementSettingsForm({
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
               />
-              <p className="text-xs text-muted-foreground">一覧の「安い順」リンクに使う言葉（ブランド＋型番が目安）</p>
+              <p className="text-xs text-muted-foreground">一覧の「安い順」リンクに使う言葉。商品名から自動で入ります（型番がないと空）。書き換えてもOK</p>
             </div>
           </div>
 
