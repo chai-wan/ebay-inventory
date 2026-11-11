@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js"
+import { serverSupabase } from "@/lib/supabase-server"
 import { browseSearch } from "@/lib/ebay-browse"
 import { tradingCall } from "@/lib/ebay-trading"
 import { checkLowest } from "@/lib/lowest"
@@ -7,10 +7,7 @@ import { checkLowest } from "@/lib/lowest"
 // 15分ごとに /api/research/step から呼ばれ、1回あたり約45秒の範囲で少しずつ進める。
 // すべて読み取りのみ（eBayの出品は変えない）。
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+const supabase = serverSupabase()
 
 export const PRICE_MIN = 150
 export const PRICE_MAX = 400

@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js"
+import { serverSupabase } from "@/lib/supabase-server"
 import { browseSearch } from "@/lib/ebay-browse"
 import { extractModel } from "@/lib/model"
 import { extractEbayItemId } from "@/lib/utils"
@@ -7,10 +7,7 @@ import { extractEbayItemId } from "@/lib/utils"
 // 自分以外の一番安い出品（本体価格＋送料）を procurement_settings に記録する。読み取りのみ。
 // リサーチの15分ごとの処理から呼ばれ、1回に数件ずつ、各商品は約20時間に1回。
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+const supabase = serverSupabase()
 
 const OWN_SELLER = "kaikaido-japan"
 const PER_STEP = 6

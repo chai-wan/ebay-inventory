@@ -1,5 +1,5 @@
 import crypto from "crypto"
-import { createClient } from "@supabase/supabase-js"
+import { serverSupabase } from "@/lib/supabase-server"
 
 // eBayの「ログイン許可」(OAuth) まわり。
 // 長期の鍵(refresh token)は暗号化して Supabase の app_tokens に置き、
@@ -12,10 +12,7 @@ export const EBAY_SCOPES = [
 
 const TOKEN_NAME = "ebay_refresh_token"
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+const supabase = serverSupabase()
 
 function encKey(): Buffer {
   const k = process.env.TOKEN_ENC_KEY

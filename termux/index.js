@@ -77,7 +77,10 @@ function log(level, msg) {
 // ============================================================
 // Supabase
 // ============================================================
-const supabase = createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey);
+// DBは合言葉（.env の DB_GATE_SECRET）がないと読み書きできない（2026-11-11〜）
+const supabase = createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey, {
+  global: { headers: { "x-db-gate": process.env.DB_GATE_SECRET || "" } },
+});
 
 async function fetchActiveListings() {
   const { data, error } = await supabase

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
+import { serverSupabase } from "@/lib/supabase-server"
 import { extractEbayItemId } from "@/lib/utils"
 import { tradingCall } from "@/lib/ebay-trading"
 import { keywordFromTitle } from "@/lib/model"
@@ -9,10 +9,7 @@ import { keywordFromTitle } from "@/lib/model"
 export const dynamic = "force-dynamic"
 export const maxDuration = 60
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+const supabase = serverSupabase()
 
 const num = (v: string) => {
   const n = parseFloat(v)

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
+import { serverSupabase } from "@/lib/supabase-server"
 import * as cheerio from "cheerio"
 import { extractEbayItemId } from "@/lib/utils"
 import { estimateEbayFeeUsd } from "@/lib/sales"
@@ -10,10 +10,7 @@ import { getAccessToken } from "@/lib/ebay-oauth"
 export const dynamic = "force-dynamic"
 export const maxDuration = 60
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+const supabase = serverSupabase()
 
 const num = (v: string | undefined) => {
   const n = parseFloat(v ?? "")

@@ -1,15 +1,12 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
+import { serverSupabase } from "@/lib/supabase-server"
 import { extractEbayItemId } from "@/lib/utils"
 import { tradingCall } from "@/lib/ebay-trading"
 
 // eBayの出品数を変える。0なら「在庫切れで出品を残す」、1以上なら再出品して監視を再開。
 export const dynamic = "force-dynamic"
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+const supabase = serverSupabase()
 
 export async function POST(req: Request) {
   const { id, quantity } = await req.json().catch(() => ({}))
