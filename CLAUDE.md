@@ -62,10 +62,11 @@
 - `app_tokens`：暗号化したeBayの長期トークンのほか、`last_import`、`pricing_settings`、`research_last` など。
 - `research_sources`：リサーチの対象（2026-11-09時点：生きているセラー14人＝seller参考56人をBrowse APIで判定、＋カテゴリ 54968 ゲーム周辺機器・15230 フィルムカメラ・15052 ポータブルオーディオ。カテゴリは中古のみ）。
 - `research_items`：記録した出品（型番は `extractModel` でタイトルから抜き出し。セラー88.japan.sellerは一点物の限定グッズが多く、型番が取れるのは4%ほど）。
-- どの表もRLSは「誰でも読み書き可」のポリシー。anonキーは公開済みなので、DBは実質だれでも読み書きできる（既知の弱点。塞ぐならRLSを認証付きにする）。
+- **DBの鍵（2026-11-11〜）**：どの表もRLSは `gate_all`＝`db_gate_ok()` が真のときだけ読み書き可。`db_gate_ok()` はリクエストの `x-db-gate` ヘッダーをVaultの `db_gate_secret` と照合する（値はVercelの `DB_GATE_SECRET` と同じ）。画面（`lib/supabase.ts`）は自サイトの `/api/sb/rest/v1/...`（`app/api/sb/[...path]/route.ts`、ログイン必須）経由で、サーバー側がヘッダーを付けて中継。APIや定時処理は `lib/supabase-server.ts` の `serverSupabase()`。合言葉なしのanonキーでは0件・書き込み不可。新しい表を作るときも同じ `gate_all` ポリシーを付けること。
+- Termuxで在庫監視を再開するときは、Pixelの `~/ebay-checker/.env` に `DB_GATE_SECRET=（Vercelと同じ値）` を足す必要がある（ないとDBが0件に見える）。
 
 ## Vercelの環境変数（値はVercelにだけある）
-`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `EBAY_USER_TOKEN`（Trading API用、2027年11月ごろ期限）, `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, `EBAY_RUNAME`, `TOKEN_ENC_KEY`（`app_tokens` の暗号鍵。変えると再連携が必要）, `APP_PASSWORD`, `CRON_SECRET`（定時実行の合言葉）。
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `EBAY_USER_TOKEN`（Trading API用、2027年11月ごろ期限）, `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, `EBAY_RUNAME`, `TOKEN_ENC_KEY`（`app_tokens` の暗号鍵。変えると再連携が必要）, `APP_PASSWORD`, `CRON_SECRET`（定時実行の合言葉）, `DB_GATE_SECRET`（DBの合言葉。SupabaseのVault `db_gate_secret` と同じ値。変えるなら両方）。
 Vercelは無料（Hobby）プラン。定時実行は1日1回・アカウント全体で2つまで、実行時刻は指定した1時間のどこかになる。
 環境変数を変えたら、空コミットのpushなどで再デプロイしないと反映されない。
 
