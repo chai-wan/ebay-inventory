@@ -58,6 +58,8 @@ export interface ProcurementSetting {
   mercariStatus?: string | null
   mercariCheckedAt?: Date | null
   ebayQuantity?: number | null
+  // eBayの最安値（自分以外・送料込み。サーバーが毎日記録。フォームでは編集しない）
+  lowest?: { totalUsd: number | null; url: string; title: string; count: number; checkedAt: Date } | null
 }
 
 interface ProcurementSettingsFormProps {

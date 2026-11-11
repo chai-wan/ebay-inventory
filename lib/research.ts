@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js"
 import { browseSearch } from "@/lib/ebay-browse"
 import { tradingCall } from "@/lib/ebay-trading"
+import { checkLowest } from "@/lib/lowest"
 
 // 自分用テラピーク：日本のセラーとカテゴリの出品を記録し、売れた数を調べて貯める。
 // 15分ごとに /api/research/step から呼ばれ、1回あたり約45秒の範囲で少しずつ進める。
@@ -190,6 +191,7 @@ export async function researchStep() {
   const deadline = started + 45_000
   const log: string[] = []
   try {
+    await checkLowest(log).catch((e) => log.push(`最安値：${(e as Error).message}`)) // 在庫の最安値（数件だけ）
     await snapshot(started + 25_000, log) // 前半は記録、後半は個別確認
     await checkItems(deadline, log)
   } catch (e) {

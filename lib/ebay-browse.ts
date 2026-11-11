@@ -28,6 +28,8 @@ export interface BrowseSummary {
   condition: string
   seller: string
   created: string | null
+  shipping: number | null // 米国への送料（分からなければ null）
+  url: string
 }
 
 export async function browseSearch(params: Record<string, string>, filters: string[]) {
@@ -47,6 +49,8 @@ export async function browseSearch(params: Record<string, string>, filters: stri
     condition: String(it.condition ?? ""),
     seller: String(it.seller?.username ?? ""),
     created: it.itemCreationDate ? String(it.itemCreationDate) : null,
+    shipping: it.shippingOptions?.[0]?.shippingCost?.value != null ? Number(it.shippingOptions[0].shippingCost.value) : null,
+    url: String(it.itemWebUrl ?? ""),
   }))
   return { ok: true as const, error: null, total: Number(j.total) || 0, items }
 }

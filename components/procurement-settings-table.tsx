@@ -137,6 +137,28 @@ export function ProcurementSettingsTable({
     )
   }
 
+  const lowestInfo = (setting: ProcurementSetting) => {
+    const lo = setting.lowest
+    if (!setting.searchKeyword?.trim()) return null
+    if (!lo) return <div className="text-xs text-muted-foreground">最安：まだ調べていません</div>
+    if (lo.totalUsd == null) return <div className="text-xs text-muted-foreground">最安：同じ商品が見つかりません</div>
+    const mine = setting.sellingPriceUsd + (setting.shippingCostUsd || 0)
+    const diff = mine - lo.totalUsd
+    return (
+      <div className="text-sm space-y-0.5">
+        <a href={lo.url} target="_blank" rel="noopener noreferrer" title={lo.title}
+          className="inline-flex items-center gap-1 font-semibold text-orange-600 hover:underline">
+          最安 ${lo.totalUsd.toFixed(2)}
+          <ExternalLink className="h-3 w-3 shrink-0" />
+        </a>
+        <div className={`text-xs ${diff > 0 ? "text-red-700" : "text-emerald-700"}`}>
+          {diff > 0 ? `自分より $${diff.toFixed(2)} 安い` : "自分が最安"}
+          <span className="text-muted-foreground">（送料込み・{lo.count}件中）</span>
+        </div>
+      </div>
+    )
+  }
+
   const cheapestUrl = (kw?: string) =>
     kw && kw.trim()
       ? `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(kw.trim())}&_sop=15`
@@ -270,6 +292,7 @@ export function ProcurementSettingsTable({
                           ${setting.sellingPriceUsd.toFixed(2)}
                         </div>
                         {getProfitDisplay(setting)}
+                        {lowestInfo(setting)}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -471,6 +494,7 @@ export function ProcurementSettingsTable({
                         +送料${setting.shippingCostUsd.toFixed(2)}
                       </div>
                     )}
+                    {lowestInfo(setting)}
                   </div>
                 </div>
 

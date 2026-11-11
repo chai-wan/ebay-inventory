@@ -102,6 +102,13 @@ export default function ProcurementSettingsPage() {
       mercariStatus: row.mercari_status ?? null,
       mercariCheckedAt: row.mercari_checked_at ? new Date(row.mercari_checked_at) : null,
       ebayQuantity: row.ebay_quantity ?? null,
+      lowest: row.lowest_checked_at ? {
+        totalUsd: row.lowest_total_usd != null ? Number(row.lowest_total_usd) : null,
+        url: row.lowest_url ?? '',
+        title: row.lowest_title ?? '',
+        count: row.lowest_count ?? 0,
+        checkedAt: new Date(row.lowest_checked_at),
+      } : null,
     }))
     setSettings(mapped)
     setLoading(false)
