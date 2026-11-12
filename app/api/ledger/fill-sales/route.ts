@@ -59,13 +59,16 @@ export async function GET(req: NextRequest) {
     .is("out_date", null)
     .eq("kubetsu", "買受")
     .order("buy_date", { ascending: true })
-  const { data: done } = await supabase.from("kobutsu_ledger").select("out_confirm_id").neq("out_confirm_id", "")
-  const doneOrders = new Set((done ?? []).map((d) => d.out_confirm_id))
+  const { data: done } = await supabase.from("kobutsu_ledger").select("out_confirm_id, item_number, out_date").not("out_date", "is", null)
+  const doneOrders = new Set((done ?? []).map((d) => d.out_confirm_id).filter(Boolean))
+  // Excelから入れた行は注文番号がないので、同じItem numberで売却日が前後3日以内の行があれば記入済みとみなす
+  const nearDone = (s: Sale) =>
+    (done ?? []).some((d) => d.item_number === s.itemId && Math.abs(new Date(d.out_date).getTime() - new Date(s.date).getTime()) <= 3 * 86400000)
   const used = new Set<number>()
 
   const plan: { ledgerId: number | null; name: string | null; sale: Sale; note: string }[] = []
   for (const s of sales) {
-    if (s.orderId && doneOrders.has(s.orderId)) { plan.push({ ledgerId: null, name: null, sale: s, note: "記入済み" }); continue }
+    if ((s.orderId && doneOrders.has(s.orderId)) || nearDone(s)) { plan.push({ ledgerId: null, name: null, sale: s, note: "記入済み" }); continue }
     const row = (open ?? []).find((o) => o.item_number && o.item_number === s.itemId && !used.has(o.id))
     if (!row) { plan.push({ ledgerId: null, name: null, sale: s, note: "台帳に該当なし" }); continue }
     used.add(row.id)
