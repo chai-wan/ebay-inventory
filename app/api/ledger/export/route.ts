@@ -37,7 +37,7 @@ export async function GET() {
       LEDGER_COLUMNS.map((c) => {
         const v = r[c.key]
         if (v === null || v === undefined || v === "") return null
-        if (c.kind === "date") return new Date(`${v}T00:00:00+09:00`)
+        if (c.kind === "date") return new Date(`${v}T00:00:00Z`) // Excelは時差なしで日付を持つので、UTCの0時にする
         if (c.kind === "number") return Number(v)
         return v
       })
