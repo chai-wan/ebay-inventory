@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server"
 import { serverSupabase } from "@/lib/supabase-server"
 import { getAccessToken } from "@/lib/ebay-oauth"
+import { tradingCall } from "@/lib/ebay-trading"
 
 // 台帳の払出しの空欄を、eBayの売上記録（Finances API の SALE）で埋める。
 // ?from=YYYY-MM-DD から今日まで。既定は下見だけ（何も書かない）。?apply=1 のときだけ書き込む。
@@ -10,7 +11,7 @@ export const maxDuration = 60
 
 const num = (v: unknown) => (v == null || v === "" ? 0 : Number(v))
 
-type Sale = { itemId: string; orderId: string; lineItemId: string; date: string; priceUsd: number; amountUsd: number; buyer: string }
+type Sale = { title?: string; itemId: string; orderId: string; lineItemId: string; date: string; priceUsd: number; amountUsd: number; buyer: string }
 
 export async function GET(req: NextRequest) {
   const from = req.nextUrl.searchParams.get("from") ?? "2026-02-01"
@@ -52,6 +53,32 @@ export async function GET(req: NextRequest) {
   }
   sales.sort((a, b) => a.date.localeCompare(b.date))
 
+  // Finances にはItem numberが載らないので、注文番号から Trading API の GetOrders で引く
+  const needOrders = [...new Set(sales.filter((x) => !x.itemId && x.orderId).map((x) => x.orderId))]
+  const byOrder = new Map<string, { itemId: string; txId: string; title: string }[]>()
+  let lookupError: string | null = null
+  for (let i = 0; i < needOrders.length; i += 20) {
+    const ids = needOrders.slice(i, i + 20).map((o) => `<OrderID>${o}</OrderID>`).join("")
+    const r = await tradingCall("GetOrders", `<OrderIDArray>${ids}</OrderIDArray><OrderRole>Seller</OrderRole><DetailLevel>ReturnAll</DetailLevel>`)
+    if (!r.ok) { lookupError = r.error; break }
+    r.$("OrderArray > Order").each((_, o) => {
+      const $o = r.$(o)
+      const ids2 = [$o.children("OrderID").text(), $o.children("ExtendedOrderID").text()].filter(Boolean)
+      const txs: { itemId: string; txId: string; title: string }[] = []
+      $o.find("TransactionArray > Transaction").each((__, t) => {
+        const $t = r.$(t)
+        txs.push({ itemId: $t.find("Item > ItemID").first().text(), txId: $t.children("TransactionID").text(), title: $t.find("Item > Title").first().text() })
+      })
+      for (const id of ids2) byOrder.set(id, txs)
+    })
+  }
+  for (const x of sales) {
+    if (x.itemId) continue
+    const txs = byOrder.get(x.orderId) ?? []
+    const hit = txs.length === 1 ? txs[0] : txs.find((t) => t.txId === x.lineItemId)
+    if (hit) { x.itemId = hit.itemId; x.title = hit.title }
+  }
+
   const supabase = serverSupabase()
   const { data: open } = await supabase
     .from("kobutsu_ledger")
@@ -84,5 +111,5 @@ export async function GET(req: NextRequest) {
         .is("out_date", null)
     }
   }
-  return Response.json({ ok: true, from, apply, sales: sales.length, plan, sample })
+  return Response.json({ ok: true, from, apply, sales: sales.length, lookupError, plan, sample })
 }
