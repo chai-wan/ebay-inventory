@@ -11,7 +11,7 @@ export async function proxy(req: NextRequest) {
   const cronSecret = process.env.CRON_SECRET
   if (
     cronSecret &&
-    (req.nextUrl.pathname === "/api/import-sales" || req.nextUrl.pathname === "/api/research/step") &&
+    (req.nextUrl.pathname === "/api/import-sales" || req.nextUrl.pathname === "/api/research/step" || req.nextUrl.pathname === "/api/ledger/fill-sales") &&
     req.headers.get("authorization") === `Bearer ${cronSecret}`
   ) {
     return NextResponse.next()
