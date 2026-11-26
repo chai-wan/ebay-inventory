@@ -1,6 +1,7 @@
 "use client"
 
 import { Badge } from "@/components/ui/badge"
+import { checkHsCode } from "@/lib/hs"
 import { Button } from "@/components/ui/button"
 import {
   Table,
@@ -238,6 +239,7 @@ export function ProcurementSettingsTable({
                           {setting.ebayProductName || <span className="text-muted-foreground">-</span>}
                         </div>
                       )}
+                      {(() => { const c = checkHsCode(setting.hsCode); return c.level === "danger" ? <div className="mt-1 text-xs font-semibold text-red-600">⚠ HS {setting.hsCode}：{c.message}</div> : null })()}
                     </TableCell>
                     <TableCell>
                       {(() => {
@@ -382,6 +384,7 @@ export function ProcurementSettingsTable({
                         {setting.ebayProductName}
                       </div>
                     ) : null}
+                    {(() => { const c = checkHsCode(setting.hsCode); return c.level === "danger" ? <div className="mt-1 text-xs font-semibold text-red-600">⚠ HS {setting.hsCode}：{c.message}</div> : null })()}
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

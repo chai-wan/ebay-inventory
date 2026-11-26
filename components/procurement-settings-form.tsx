@@ -24,6 +24,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import type { SiteMaster } from "./site-master"
+import { checkHsCode } from "@/lib/hs"
 
 // ProcurementSetting から inStockKeywords / outOfStockKeywords を削除
 export interface ProcurementSetting {
@@ -34,6 +35,8 @@ export interface ProcurementSetting {
   ebayReferenceUrl: string
   // eBay検索語（一覧の「安い順」リンク用）
   searchKeyword?: string
+  // HSコード（関税番号。インボイスに書く番号の控え。追加関税の注意表示用）
+  hsCode?: string
   ebayProductName: string
   monitoringInterval: string
   memo: string
@@ -96,6 +99,7 @@ export function ProcurementSettingsForm({
   const [ebayUrl, setEbayUrl] = useState("")
   const [ebayReferenceUrl, setEbayReferenceUrl] = useState("")
   const [searchKeyword, setSearchKeyword] = useState("")
+  const [hsCode, setHsCode] = useState("")
   const [ebayProductName, setEbayProductName] = useState("")
   const [monitoringInterval, setMonitoringInterval] = useState("30")
   const [memo, setMemo] = useState("")
@@ -147,6 +151,7 @@ export function ProcurementSettingsForm({
       setEbayUrl(editingSetting.ebayUrl)
       setEbayReferenceUrl(editingSetting.ebayReferenceUrl)
       setSearchKeyword(editingSetting.searchKeyword ?? "")
+      setHsCode(editingSetting.hsCode ?? "")
       setEbayProductName(editingSetting.ebayProductName)
       setMonitoringInterval(editingSetting.monitoringInterval)
       setMemo(editingSetting.memo)
@@ -174,6 +179,7 @@ export function ProcurementSettingsForm({
       ebayUrl,
       ebayReferenceUrl,
       searchKeyword,
+      hsCode,
       ebayProductName,
       monitoringInterval,
       memo,
@@ -198,6 +204,7 @@ export function ProcurementSettingsForm({
     setEbayUrl("")
     setEbayReferenceUrl("")
     setSearchKeyword("")
+    setHsCode("")
     setEbayProductName("")
     setMonitoringInterval("30")
     setMemo("")
@@ -355,6 +362,23 @@ export function ProcurementSettingsForm({
                 onChange={(e) => setSearchKeyword(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">一覧の「安い順」リンクに使う言葉。商品名から自動で入ります（型番がないと空）。書き換えてもOK</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="hsCode">HSコード（関税番号）</Label>
+              <Input
+                id="hsCode"
+                inputMode="numeric"
+                placeholder="例：8536.50"
+                value={hsCode}
+                onChange={(e) => setHsCode(e.target.value)}
+              />
+              {(() => {
+                const c = checkHsCode(hsCode)
+                if (c.level === "empty") return <p className="text-xs text-muted-foreground">発送ラベルのインボイスに書く番号の控え。番号によってはアメリカで追加関税がかかるので、ここで確認できます</p>
+                const color = c.level === "danger" ? "text-red-600 font-semibold" : c.level === "caution" ? "text-amber-600" : "text-muted-foreground"
+                return <p className={`text-xs ${color}`}>{c.level === "danger" ? "⚠ 使わないで：" : c.level === "caution" ? "注意：" : ""}{c.message}</p>
+              })()}
             </div>
           </div>
 
