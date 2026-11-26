@@ -33,5 +33,7 @@ export function checkHsCode(code: string | null | undefined): HsCheck {
     if (d.startsWith(r.prefix)) return { level: r.level, message: r.message }
   }
   if (d.length !== 10) return { level: "caution", message: `CPaSSはドットなし10桁が必須です（今は${d.length}桁）` }
+  // 6桁に0を足しただけの10桁（例 8537100000）は、米国の関税表にない番号のことが多く、税関側が番号を選び直す
+  if (d.endsWith("0000")) return { level: "caution", message: "末尾が0000です。6桁に0を足しただけだと、米国の関税表にない番号になり、税関が別の番号を選ぶことがあります（JX-53はこれで8537.10.9170になった）" }
   return { level: "ok", message: "既知の追加関税リストには該当なし（リストは網羅ではありません）" }
 }
