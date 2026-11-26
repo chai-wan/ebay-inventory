@@ -32,6 +32,6 @@ export function checkHsCode(code: string | null | undefined): HsCheck {
   for (const r of RULES) {
     if (d.startsWith(r.prefix)) return { level: r.level, message: r.message }
   }
-  if (d.length < 6) return { level: "caution", message: "6桁以上で入れてください" }
+  if (d.length !== 10) return { level: "caution", message: `CPaSSはドットなし10桁が必須です（今は${d.length}桁）` }
   return { level: "ok", message: "既知の追加関税リストには該当なし（リストは網羅ではありません）" }
 }
